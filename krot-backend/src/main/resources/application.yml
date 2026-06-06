@@ -1,0 +1,25 @@
+app:
+  security:
+    secured-transport-protocol:
+      enable-incoming: false
+      enable-outcoming: false
+    handshake:
+      nonce-window: 86400000 # TODO: Testing value! Recommended is from 1000 to 5000
+      private-key: sF6T9LT1AOjsEoPwD7NocuQvewQaCYyf9cR9F5upkW0=
+      public-key: zSkMxt/GdIKUV4jsbOORZnRKrafMbkVXCc1CdlFvDCA=
+    session:
+      session-duration: 525600 # TODO: Testing value! Recommended is from 60 to 120
+quarkus:
+  datasource:
+    db-kind: postgresql
+    username: postgres
+    password: test18072009
+    reactive:
+      url: postgresql://localhost:5432/krot
+      max-size: 20
+  hibernate-orm:
+    schema-management:
+      strategy: drop-and-create
+  http:
+    auth:
+      proactive: false
