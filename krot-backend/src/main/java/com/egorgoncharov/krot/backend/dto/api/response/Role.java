@@ -1,8 +1,8 @@
 package com.egorgoncharov.krot.backend.dto.api.response;
 
 import com.egorgoncharov.krot.backend.dto.api.request.EntityReflection;
-import com.egorgoncharov.krot.backend.model.entity.RoleEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.RoleEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
 import com.egorgoncharov.krot.backend.security.Authority;
 import com.egorgoncharov.krot.backend.service.helper.TypesHelper;
 import com.fasterxml.jackson.annotation.JsonInclude;

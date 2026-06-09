@@ -9,7 +9,7 @@ import com.egorgoncharov.krot.backend.dto.api.request.role.GetRoleRequest;
 import com.egorgoncharov.krot.backend.dto.api.response.Role;
 import com.egorgoncharov.krot.backend.dto.service.Result;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
-import com.egorgoncharov.krot.backend.model.entity.RoleEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.RoleEntity;
 import com.egorgoncharov.krot.backend.service.helper.TypesHelper;
 import com.egorgoncharov.krot.backend.service.impl.RoleServiceImpl;
 import io.quarkus.security.PermissionsAllowed;

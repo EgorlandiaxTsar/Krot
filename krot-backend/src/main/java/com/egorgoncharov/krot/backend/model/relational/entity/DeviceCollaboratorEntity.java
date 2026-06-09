@@ -1,6 +1,6 @@
-package com.egorgoncharov.krot.backend.model.entity;
+package com.egorgoncharov.krot.backend.model.relational.entity;
 
-import com.egorgoncharov.krot.backend.model.common.Identifiable;
+import com.egorgoncharov.krot.backend.model.Identifiable;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 import lombok.*;

@@ -20,6 +20,10 @@ quarkus:
   hibernate-orm:
     schema-management:
       strategy: drop-and-create
+  redis:
+    hosts: redis://localhost:6379/0
+    max-pool-size: 100
+    timeout: 5s
   http:
     auth:
       proactive: false

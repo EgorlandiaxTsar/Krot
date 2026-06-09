@@ -5,26 +5,27 @@ import com.egorgoncharov.krot.backend.dto.service.filter.RangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.filter.TimeRangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.common.ReactiveRepository;
-import com.egorgoncharov.krot.backend.model.entity.RoleEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
-import com.egorgoncharov.krot.backend.model.repository.RoleRepository;
-import com.egorgoncharov.krot.backend.model.repository.SessionRepository;
-import com.egorgoncharov.krot.backend.model.repository.UserRepository;
+import com.egorgoncharov.krot.backend.model.relational.RelationalReactiveRepository;
+import com.egorgoncharov.krot.backend.model.relational.entity.RoleEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.repository.HistoricalSessionRepository;
+import com.egorgoncharov.krot.backend.model.relational.repository.RoleRepository;
+import com.egorgoncharov.krot.backend.model.relational.repository.UserRepository;
 import com.egorgoncharov.krot.backend.security.Authority;
 import com.egorgoncharov.krot.backend.service.UserService;
 import com.egorgoncharov.krot.backend.service.common.ReactiveCrudService;
 import com.egorgoncharov.krot.backend.service.helper.SecurityHelper;
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
-import io.quarkus.panache.common.Parameters;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -32,18 +33,18 @@ public class UserServiceImpl extends ReactiveCrudService<UserEntity, UUID> imple
     private final SecurityIdentity client;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final SessionRepository sessionRepository;
+    private final HistoricalSessionRepository historicalSessionRepository;
 
     @Inject
-    public UserServiceImpl(SecurityIdentity client, UserRepository userRepository, RoleRepository roleRepository, SessionRepository sessionRepository) {
+    public UserServiceImpl(SecurityIdentity client, UserRepository userRepository, RoleRepository roleRepository, HistoricalSessionRepository historicalSessionRepository) {
         this.client = client;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.sessionRepository = sessionRepository;
+        this.historicalSessionRepository = historicalSessionRepository;
     }
 
     @Override
-    protected ReactiveRepository<UserEntity, UUID> repository() {
+    protected RelationalReactiveRepository<UserEntity, UUID> repository() {
         return userRepository;
     }
 
@@ -53,14 +54,14 @@ public class UserServiceImpl extends ReactiveCrudService<UserEntity, UUID> imple
         UserEntity clientUser = SecurityHelper.securityIdentityUser(client);
         if (clientUser == null) return Uni.createFrom().item(Result.forbidden());
         StringBuilder query = new StringBuilder("1=1");
-        Parameters parameters = new Parameters();
+        Map<String, Object> parameters = new HashMap<>();
         if (!clientUser.getRole().getAuthorities().contains(Authority.X_USER_READ)) {
             if (clientUser.getRole().getAuthorities().contains(Authority.USER_READ)) {
                 query.append(" AND role.grade <= :clientGrade");
-                parameters.and("clientGrade", clientUser.getRole().getGrade());
+                parameters.put("clientGrade", clientUser.getRole().getGrade());
             } else if (clientUser.getRole().getAuthorities().contains(Authority.SELF_READ)) {
                 query.append(" AND id = :clientId");
-                parameters.and("clientId", clientUser.getId());
+                parameters.put("clientId", clientUser.getId());
                 return executeFilter(query.toString(), parameters, pagination);
             } else {
                 return Uni.createFrom().item(Result.forbidden());
@@ -68,20 +69,20 @@ public class UserServiceImpl extends ReactiveCrudService<UserEntity, UUID> imple
         }
         if (ids != null && !ids.isEmpty()) {
             query.append(" AND id IN :ids");
-            parameters.and("ids", ids);
+            parameters.put("ids", ids);
         }
         if (active != null) {
             query.append(" AND active = :active");
-            parameters.and("active", active);
+            parameters.put("active", active);
         }
         RangeFilter.applyRangeFilter(query, "createdAt", parameters, creationTime);
         if (roleId != null) {
             query.append(" AND role.id = :roleId");
-            parameters.and("roleId", roleId.toString());
+            parameters.put("roleId", roleId.toString());
         }
         if (usernameQuery != null) {
             query.append(" AND (lower(username)) LIKE :username");
-            parameters.and("username", "%" + usernameQuery.toLowerCase() + "%");
+            parameters.put("username", "%" + usernameQuery.toLowerCase() + "%");
         }
         return executeFilter(query.toString(), parameters, pagination);
     }
@@ -158,16 +159,18 @@ public class UserServiceImpl extends ReactiveCrudService<UserEntity, UUID> imple
         boolean canDeleteUser = clientUser.getRole().getAuthorities().contains(Authority.USER_DELETE);
         if (!canSelfDelete && !canDeleteAnyUser && canDeleteUser) return Uni.createFrom().item(Result.forbidden());
         String query = canDeleteAnyUser ? "FROM UserEntity u WHERE u.id IN :ids" : "FROM UserEntity u WHERE u.id IN :ids AND" + (canSelfDelete ? " (u.role.grade < :clientGrade OR u.id = :clientId)" : " u.role.grade < :clientGrade");
-        Parameters parameters = Parameters.with("ids", ids);
+        Map<String, Object> parameters = new HashMap<>() {{
+            put("ids", ids);
+        }};
         if (!canDeleteAnyUser) {
-            parameters.and("clientGrade", clientUser.getRole().getGrade());
-            if (canSelfDelete) parameters.and("clientId", clientUser.getId());
+            parameters.put("clientGrade", clientUser.getRole().getGrade());
+            if (canSelfDelete) parameters.put("clientId", clientUser.getId());
         }
-        return userRepository.find(query, parameters.map()).list().chain(authorizedUsers -> {
+        return userRepository.find(query, parameters).list().chain(authorizedUsers -> {
             if (authorizedUsers.size() != ids.size()) return Uni.createFrom().item(Result.notFound());
-            return userRepository.find("FROM UserEntity u WHERE u.id IN :ids AND (u.programs IS NOT EMPTY OR u.devices IS NOT EMPTY)", parameters.map()).firstResult().chain(relations -> {
+            return userRepository.find("FROM UserEntity u WHERE u.id IN :ids AND (u.programs IS NOT EMPTY OR u.devices IS NOT EMPTY)", parameters).firstResult().chain(relations -> {
                 if (relations != null) return Uni.createFrom().item(Result.badRequest("Some users own devices and/or programs, make sure to unlink these entities and try again"));
-                return sessionRepository.delete("userOwner.id IN :ids", parameters.map()).chain(() -> super.deleteById(ids));
+                return historicalSessionRepository.delete("userOwner.id IN :ids", parameters).chain(() -> super.deleteById(ids));
             });
         });
     }

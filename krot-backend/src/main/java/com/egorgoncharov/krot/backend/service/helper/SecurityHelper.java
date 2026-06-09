@@ -2,8 +2,8 @@ package com.egorgoncharov.krot.backend.service.helper;
 
 import com.egorgoncharov.krot.backend.dto.security.auth.principal.Principal;
 import com.egorgoncharov.krot.backend.dto.security.auth.principal.PrincipalType;
-import com.egorgoncharov.krot.backend.model.entity.RoleEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.RoleEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.bouncycastle.crypto.InvalidCipherTextException;
@@ -90,7 +90,7 @@ public class SecurityHelper {
             int charType = SECURE_RANDOM.nextInt(0, 3);
             if (charType == 0) {
                 if (includeLetters) {
-                    password.append(RandomStringUtils.randomAlphabetic(1));
+                    password.append(RandomStringUtils.secureStrong().nextAlphabetic(1));
                     continue;
                 } else {
                     charType++;
@@ -98,14 +98,14 @@ public class SecurityHelper {
             }
             if (charType == 1) {
                 if (includeSymbols) {
-                    password.append(RandomStringUtils.randomAlphanumeric(1));
+                    password.append(RandomStringUtils.secureStrong().nextAlphanumeric(1));
                     continue;
                 } else {
                     charType++;
                 }
             }
             if (charType == 2 && includeDigits) {
-                password.append(RandomStringUtils.randomNumeric(1));
+                password.append(RandomStringUtils.secureStrong().nextNumeric(1));
             }
         }
         return password.isEmpty() ? null : password.toString();

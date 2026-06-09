@@ -4,7 +4,7 @@ import com.egorgoncharov.krot.backend.config.yaml.HandshakeConfig;
 import com.egorgoncharov.krot.backend.dto.security.auth.session.HandshakeSession;
 import com.egorgoncharov.krot.backend.dto.security.auth.session.RequestSession;
 import com.egorgoncharov.krot.backend.dto.security.transport.headers.RequestHeaders;
-import com.egorgoncharov.krot.backend.model.repository.SessionRepository;
+import com.egorgoncharov.krot.backend.model.redis.repository.SessionRepository;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
@@ -30,9 +30,9 @@ public class SessionAuthenticationMechanism implements HttpAuthenticationMechani
     private final SessionRepository sessionRepository;
 
     @Inject
-    public SessionAuthenticationMechanism(HandshakeConfig handshakeConfig, SessionRepository sessionRepository) {
+    public SessionAuthenticationMechanism(HandshakeConfig handshakeConfig, SessionRepository historicalSessionRepository) {
         this.handshakeConfig = handshakeConfig;
-        this.sessionRepository = sessionRepository;
+        this.sessionRepository = historicalSessionRepository;
     }
 
     @WithTransaction
@@ -48,7 +48,6 @@ public class SessionAuthenticationMechanism implements HttpAuthenticationMechani
             requestSession.getSession().setLastUsed(OffsetDateTime.now());
             return sessionRepository.save(requestSession.getSession()).chain(() -> identityProviderManager.authenticate(new SessionAuthenticationRequest(requestSession)));
         }
-
         return Uni.createFrom().nullItem();
     }
 
@@ -70,7 +69,7 @@ public class SessionAuthenticationMechanism implements HttpAuthenticationMechani
 
     @Override
     public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
-        return Uni.createFrom().item(new HttpCredentialTransport(HttpCredentialTransport.Type.OTHER_HEADER, RequestHeaders.SRC_HEADER_NAME));
+        return Uni.createFrom().item(new HttpCredentialTransport(HttpCredentialTransport.Type.OTHER_HEADER, RequestHeaders.SESSION_REFERENCE_HEADER_NAME));
     }
 
     @Override

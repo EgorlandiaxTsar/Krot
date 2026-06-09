@@ -1,7 +1,7 @@
-package com.egorgoncharov.krot.backend.model.repository;
+package com.egorgoncharov.krot.backend.model.relational.repository;
 
-import com.egorgoncharov.krot.backend.model.common.NameableEntityRepository;
-import com.egorgoncharov.krot.backend.model.entity.DeviceEntity;
+import com.egorgoncharov.krot.backend.model.relational.RelationalNameableRepository;
+import com.egorgoncharov.krot.backend.model.relational.entity.DeviceEntity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -9,7 +9,7 @@ import jakarta.inject.Inject;
 import java.util.UUID;
 
 @ApplicationScoped
-public class DeviceRepository implements NameableEntityRepository<DeviceEntity, UUID> {
+public class DeviceRepository implements RelationalNameableRepository<DeviceEntity, UUID> {
     @Inject
     UserRepository userRepository;
 

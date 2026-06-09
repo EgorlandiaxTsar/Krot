@@ -4,8 +4,8 @@ import com.egorgoncharov.krot.backend.dto.service.Result;
 import com.egorgoncharov.krot.backend.dto.service.filter.TimeRangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.entity.DeviceCollaboratorEntity;
-import com.egorgoncharov.krot.backend.model.entity.DeviceEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.DeviceCollaboratorEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.DeviceEntity;
 import com.egorgoncharov.krot.backend.service.common.CrudService;
 import io.smallrye.mutiny.Uni;
 

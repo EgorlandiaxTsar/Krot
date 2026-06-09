@@ -5,23 +5,25 @@ import com.egorgoncharov.krot.backend.dto.service.filter.RangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.filter.TimeRangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.common.ReactiveRepository;
-import com.egorgoncharov.krot.backend.model.entity.ProgramEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
-import com.egorgoncharov.krot.backend.model.repository.ProgramRepository;
-import com.egorgoncharov.krot.backend.model.repository.UserRepository;
+import com.egorgoncharov.krot.backend.model.relational.RelationalReactiveRepository;
+import com.egorgoncharov.krot.backend.model.relational.entity.ProgramEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.repository.ProgramRepository;
+import com.egorgoncharov.krot.backend.model.relational.repository.UserRepository;
 import com.egorgoncharov.krot.backend.security.Authority;
 import com.egorgoncharov.krot.backend.service.ProgramService;
 import com.egorgoncharov.krot.backend.service.common.ReactiveCrudService;
 import com.egorgoncharov.krot.backend.service.helper.SecurityHelper;
-import io.quarkus.panache.common.Parameters;
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -38,30 +40,31 @@ public class ProgramServiceImpl extends ReactiveCrudService<ProgramEntity, UUID>
     }
 
     @Override
-    protected ReactiveRepository<ProgramEntity, UUID> repository() {
+    protected RelationalReactiveRepository<ProgramEntity, UUID> repository() {
         return programRepository;
     }
 
     @Override
     public Uni<Result<Page<ProgramEntity>>> filter(List<UUID> ids, TimeRangeFilter creationTime, UUID ownerId, String nameQuery, PaginationOptions pagination) {
         StringBuilder query = new StringBuilder("1=1");
-        Parameters parameters = new Parameters();
+        Map<String, Object> parameters = new HashMap<>();
         if (ids != null && !ids.isEmpty()) {
             query.append(" AND id IN :ids");
-            parameters.and("ids", ids);
+            parameters.put("ids", ids);
         }
         RangeFilter.applyRangeFilter(query, "creationTime", parameters, creationTime);
         if (ownerId != null) {
             query.append(" AND ownerId = :ownerId");
-            parameters.and("ownerId", ownerId);
+            parameters.put("ownerId", ownerId);
         }
         if (nameQuery != null) {
             query.append(" AND (lower(name)) LIKE :name");
-            parameters.and("name", "%" + nameQuery.toLowerCase() + "%");
+            parameters.put("name", "%" + nameQuery.toLowerCase() + "%");
         }
         return executeFilter(query.toString(), parameters, pagination);
     }
 
+    @WithTransaction
     @Override
     public Uni<Result<ProgramEntity>> create(ProgramEntity o) {
         UserEntity clientUser = SecurityHelper.securityIdentityUser(client);
@@ -75,6 +78,7 @@ public class ProgramServiceImpl extends ReactiveCrudService<ProgramEntity, UUID>
         return programRepository.existsByName(o.getName()).chain(exists -> exists ? Uni.createFrom().item(Result.conflict("name")) : super.create(o));
     }
 
+    @WithTransaction
     @Override
     public Uni<Result<ProgramEntity>> update(ProgramEntity o) {
         return modifyProgram(o.getId(), false).chain(result -> {
@@ -90,6 +94,7 @@ public class ProgramServiceImpl extends ReactiveCrudService<ProgramEntity, UUID>
         });
     }
 
+    @WithTransaction
     @Override
     public Uni<Result<Void>> transferOwnership(UUID programId, UUID newOwnerId) {
         return modifyProgram(programId, true).chain(result -> {
@@ -105,6 +110,7 @@ public class ProgramServiceImpl extends ReactiveCrudService<ProgramEntity, UUID>
         });
     }
 
+    @WithTransaction
     @Override
     public Uni<Result<List<ProgramEntity>>> deleteById(List<UUID> ids) {
         UserEntity clientUser = SecurityHelper.securityIdentityUser(client);
@@ -114,12 +120,14 @@ public class ProgramServiceImpl extends ReactiveCrudService<ProgramEntity, UUID>
         boolean canDeleteProgram = clientUser.getRole().getAuthorities().contains(Authority.PROGRAM_DELETE);
         if (!canSelfUpsert && !canDeleteAnyProgram && !canDeleteProgram) return Uni.createFrom().item(Result.forbidden());
         String query = canDeleteAnyProgram ? "FROM ProgramEntity p WHERE p.id IN :ids" : "FROM ProgramEntity p WHERE p.id IN :ids AND" + (canSelfUpsert ? " (p.owner.role.grade < :clientGrade OR p.owner.id = :clientId)" : " p.owner.role.grade < :clientGrade");
-        Parameters parameters = Parameters.with("ids", ids);
+        HashMap<String, Object> parameters = new HashMap<>() {{
+            put("ids", ids);
+        }};
         if (!canDeleteAnyProgram) {
-            parameters.and("clientGrade", clientUser.getRole().getGrade());
-            if (canSelfUpsert) parameters.and("clientId", clientUser.getId());
+            parameters.put("clientGrade", clientUser.getRole().getGrade());
+            if (canSelfUpsert) parameters.put("clientId", clientUser.getId());
         }
-        return programRepository.find(query, parameters.map()).list().chain(authorizedDevices -> {
+        return programRepository.find(query, parameters).list().chain(authorizedDevices -> {
             if (authorizedDevices.size() != ids.size()) return Uni.createFrom().item(Result.notFound());
             return super.deleteById(ids);
         });

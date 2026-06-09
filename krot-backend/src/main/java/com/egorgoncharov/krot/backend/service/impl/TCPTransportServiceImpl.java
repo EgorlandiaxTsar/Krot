@@ -9,7 +9,7 @@ import com.egorgoncharov.krot.backend.dto.security.transport.EncryptedResponse;
 import com.egorgoncharov.krot.backend.dto.security.transport.headers.HandshakeHeaders;
 import com.egorgoncharov.krot.backend.dto.security.transport.headers.RequestHeaders;
 import com.egorgoncharov.krot.backend.dto.service.Result;
-import com.egorgoncharov.krot.backend.model.repository.SessionRepository;
+import com.egorgoncharov.krot.backend.model.redis.repository.SessionRepository;
 import com.egorgoncharov.krot.backend.service.TCPTransportService;
 import com.egorgoncharov.krot.backend.service.helper.SecurityHelper;
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
@@ -70,11 +70,12 @@ public class TCPTransportServiceImpl implements TCPTransportService {
         if (!headers.isComplete()) {
             return Uni.createFrom().item(Result.badRequest());
         }
-        return sessionRepository.findBySrcKey(UUID.fromString(headers.getSrc())).chain(session -> {
+        return sessionRepository.findBySessionReference(UUID.fromString(headers.getSessionReference())).chain(session -> {
             if (session == null || session.getValidUntil().isBefore(OffsetDateTime.now())) return Uni.createFrom().item(Result.forbidden());
             try {
                 byte[] decrypted = stpConfig.enableIncoming() ? SecurityHelper.decrypt(body.getBytes(), session.getEncryptionKey(), headers.getTag(), headers.getNonce()) : body.getBytes();
                 JsonObject json = new JsonObject(Buffer.buffer(decrypted));
+                if (!json.getJsonObject("metadata").getString("sessionId").equals(session.getId().toString())) return Uni.createFrom().item(Result.forbidden());
                 RequestSession requestSession = new RequestSession(decrypted, json.getJsonObject("metadata").getLong("timestamp"), session);
                 if (!requestSession.isComplete()) return Uni.createFrom().item(Result.badRequest());
                 return Uni.createFrom().item(Result.ok(requestSession));

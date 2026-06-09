@@ -1,7 +1,7 @@
-package com.egorgoncharov.krot.backend.model.entity;
+package com.egorgoncharov.krot.backend.model.relational.entity;
 
-import com.egorgoncharov.krot.backend.model.common.Identifiable;
-import com.egorgoncharov.krot.backend.model.common.Nameable;
+import com.egorgoncharov.krot.backend.model.Identifiable;
+import com.egorgoncharov.krot.backend.model.Nameable;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 import lombok.*;
@@ -38,7 +38,7 @@ public class DeviceEntity implements Identifiable<UUID>, Nameable {
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "device")
     private List<DeviceCollaboratorEntity> collaborators;
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "deviceOwner")
-    private List<SessionEntity> sessions;
+    private List<HistoricalSessionEntity> sessions;
 
     @Override
     public boolean equals(Object o) {

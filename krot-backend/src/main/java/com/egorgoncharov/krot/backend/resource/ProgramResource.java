@@ -9,7 +9,7 @@ import com.egorgoncharov.krot.backend.dto.api.request.program.UpsertProgramReque
 import com.egorgoncharov.krot.backend.dto.api.response.Program;
 import com.egorgoncharov.krot.backend.dto.service.Result;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
-import com.egorgoncharov.krot.backend.model.entity.ProgramEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.ProgramEntity;
 import com.egorgoncharov.krot.backend.service.helper.TypesHelper;
 import com.egorgoncharov.krot.backend.service.impl.ProgramServiceImpl;
 import io.quarkus.security.PermissionsAllowed;

@@ -26,6 +26,7 @@ public class HttpDecryptionFilter {
     @ServerRequestFilter(preMatching = true)
     public Uni<Response> decrypt(ContainerRequestContext context, RoutingContext vertxContext) {
         String path = context.getUriInfo().getPath();
+        if (path.equals("/hello") || path.equals("/pubkey")) return Uni.createFrom().nullItem();
         byte[] originalBody = readBodyBytes(context);
         if (path.equals("/api/auth/handshake")) {
             Result<HandshakeSession> result = tcpTransportService.establishHandshakeRequest(Buffer.buffer(originalBody), HandshakeHeaders.fromRoutingContext(vertxContext));

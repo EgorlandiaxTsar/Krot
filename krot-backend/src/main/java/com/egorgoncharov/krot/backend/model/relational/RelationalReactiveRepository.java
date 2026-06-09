@@ -1,14 +1,16 @@
-package com.egorgoncharov.krot.backend.model.common;
+package com.egorgoncharov.krot.backend.model.relational;
 
+import com.egorgoncharov.krot.backend.model.Identifiable;
+import com.egorgoncharov.krot.backend.model.ReactiveRepository;
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
-import io.quarkus.panache.common.Parameters;
 import io.smallrye.mutiny.Uni;
 import jakarta.transaction.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-public interface ReactiveRepository<T extends Identifiable<I>, I> extends PanacheRepositoryBase<T, I> {
+public interface RelationalReactiveRepository<T extends Identifiable<I>, I> extends ReactiveRepository<T, I>, PanacheRepositoryBase<T, I> {
     interface PropertyProvider<T, E> {
         E extract(T o);
     }
@@ -19,11 +21,7 @@ public interface ReactiveRepository<T extends Identifiable<I>, I> extends Panach
 
     default <E> Uni<List<T>> findBy(List<E> properties, String field) {
         if (properties == null || properties.isEmpty()) return Uni.createFrom().item(List.of());
-        return find("1=1 AND " + field + " IN :values", Parameters.with("values", properties.stream().map(E::toString).toList()).map()).list();
-    }
-
-    default Uni<List<T>> findById(List<I> ids) {
-        return findBy(ids, "id");
+        return find("1=1 AND " + field + " IN :values", Map.of("values", properties.stream().map(E::toString).toList())).list();
     }
 
     default <E> Uni<Boolean> existsBy(E property, String field, PropertyProvider<T, E> provider) {
@@ -38,26 +36,41 @@ public interface ReactiveRepository<T extends Identifiable<I>, I> extends Panach
         return findBy(properties, field).map(items -> items.stream().map(provider::extract).toList()).map(items -> properties.stream().map(items::contains).toList());
     }
 
+    @Override
+    default Uni<T> findById(I id) {
+        return findBy(id, "id");
+    }
+
+    @Override
+    default Uni<List<T>> findById(List<I> ids) {
+        return findBy(ids, "id");
+    }
+
+    @Override
     default Uni<Boolean> existsById(I id) {
         return existsById(Collections.singletonList(id)).map(e -> e.isEmpty() ? null : e.getFirst());
     }
 
+    @Override
     default Uni<List<Boolean>> existsById(List<I> ids) {
         return existsBy(ids, "id", (PropertyProvider<T, I>) Identifiable::getId);
     }
 
+    @Override
     @Transactional
     default Uni<T> save(T entity) {
         if (isPersistent(entity)) return Uni.createFrom().item(entity);
         return getSession().chain(s -> s.merge(entity));
     }
 
+    @Override
     @Transactional
     default Uni<List<T>> save(List<T> entities) {
         if (entities == null || entities.isEmpty()) return Uni.createFrom().item(List.of());
         return Uni.join().all(entities.stream().map(this::save).toList()).andFailFast();
     }
 
+    @Override
     @Transactional
     default Uni<T> removeById(I id) {
         return findById(id).flatMap(e -> {
@@ -66,6 +79,7 @@ public interface ReactiveRepository<T extends Identifiable<I>, I> extends Panach
         });
     }
 
+    @Override
     @Transactional
     default Uni<List<T>> removeById(List<I> ids) {
         if (ids == null || ids.isEmpty()) return Uni.createFrom().item(List.of());

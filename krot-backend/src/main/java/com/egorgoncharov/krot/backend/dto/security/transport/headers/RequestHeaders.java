@@ -12,21 +12,21 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RequestHeaders extends XChaCha20Poly1305Headers {
-    public static final String SRC_HEADER_NAME = "X-Src";
+    public static final String SESSION_REFERENCE_HEADER_NAME = "X-Session-Reference";
 
-    private String src;
+    private String sessionReference;
 
-    public RequestHeaders(String tag, String nonce, String src) {
+    public RequestHeaders(String tag, String nonce, String sessionReference) {
         super(tag, nonce);
-        this.src = src;
+        this.sessionReference = sessionReference;
     }
 
     public static RequestHeaders fromRoutingContext(RoutingContext context) {
-        return new RequestHeaders(context.request().getHeader(TAG_HEADER_NAME), context.request().getHeader(NONCE_HEADER_NAME), context.request().getHeader(SRC_HEADER_NAME));
+        return new RequestHeaders(context.request().getHeader(TAG_HEADER_NAME), context.request().getHeader(NONCE_HEADER_NAME), context.request().getHeader(SESSION_REFERENCE_HEADER_NAME));
     }
 
     @Override
     public boolean isComplete() {
-        return super.isComplete() && src != null && TypesHelper.validateUUID(src);
+        return super.isComplete() && sessionReference != null && TypesHelper.validateUUID(sessionReference);
     }
 }

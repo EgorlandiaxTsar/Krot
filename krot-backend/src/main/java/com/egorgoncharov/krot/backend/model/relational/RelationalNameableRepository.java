@@ -1,11 +1,13 @@
-package com.egorgoncharov.krot.backend.model.common;
+package com.egorgoncharov.krot.backend.model.relational;
 
+import com.egorgoncharov.krot.backend.model.Identifiable;
+import com.egorgoncharov.krot.backend.model.Nameable;
 import io.smallrye.mutiny.Uni;
 
 import java.util.Collections;
 import java.util.List;
 
-public interface NameableEntityRepository<T extends Identifiable<I> & Nameable, I> extends ReactiveRepository<T, I> {
+public interface RelationalNameableRepository<T extends Identifiable<I> & Nameable, I> extends RelationalReactiveRepository<T, I> {
     default Uni<T> findByName(String name) {
         return findBy(name, sqlNameField());
     }

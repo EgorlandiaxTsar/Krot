@@ -5,17 +5,16 @@ import com.egorgoncharov.krot.backend.dto.service.filter.NumericalRangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.filter.RangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.common.ReactiveRepository;
-import com.egorgoncharov.krot.backend.model.entity.RoleEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
-import com.egorgoncharov.krot.backend.model.repository.RoleRepository;
+import com.egorgoncharov.krot.backend.model.relational.RelationalReactiveRepository;
+import com.egorgoncharov.krot.backend.model.relational.entity.RoleEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.repository.RoleRepository;
 import com.egorgoncharov.krot.backend.security.Authority;
 import com.egorgoncharov.krot.backend.service.RoleService;
 import com.egorgoncharov.krot.backend.service.common.ReactiveCrudService;
 import com.egorgoncharov.krot.backend.service.helper.SecurityHelper;
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
-import io.quarkus.panache.common.Parameters;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -36,7 +35,7 @@ public class RoleServiceImpl extends ReactiveCrudService<RoleEntity, UUID> imple
     }
 
     @Override
-    protected ReactiveRepository<RoleEntity, UUID> repository() {
+    protected RelationalReactiveRepository<RoleEntity, UUID> repository() {
         return roleRepository;
     }
 
@@ -46,30 +45,30 @@ public class RoleServiceImpl extends ReactiveCrudService<RoleEntity, UUID> imple
         RoleEntity clientRole = SecurityHelper.securityIdentityRole(client);
         if (clientRole == null) return Uni.createFrom().item(Result.forbidden());
         StringBuilder query = new StringBuilder("LEFT JOIN FETCH users WHERE 1=1");
-        Parameters parameters = new Parameters();
+        Map<String, Object> parameters = new HashMap<>();
         if (!clientRole.getAuthorities().contains(Authority.X_ROLE_READ)) {
             if (clientRole.getAuthorities().contains(Authority.ROLE_READ)) {
                 query.append(" AND grade <= :clientGrade");
-                parameters.and("clientGrade", clientRole.getGrade());
+                parameters.put("clientGrade", clientRole.getGrade());
             } else if (clientRole.getAuthorities().contains(Authority.SELF_READ)) {
                 query.append(" AND grade = :clientGrade");
-                parameters.and("clientGrade", clientRole.getGrade());
+                parameters.put("clientGrade", clientRole.getGrade());
             } else {
                 return Uni.createFrom().item(Result.forbidden());
             }
         }
         if (ids != null && !ids.isEmpty()) {
             query.append(" AND id IN :ids");
-            parameters.and("ids", ids);
+            parameters.put("ids", ids);
         }
         if (authorities != null && !authorities.isEmpty()) {
             query.append(" AND EXISTS (SELECT 1 FROM RoleEntity r JOIN r.authorities a WHERE r.id = id AND a IN :authorities)");
-            parameters.and("authorities", authorities);
+            parameters.put("authorities", authorities);
         }
         RangeFilter.applyRangeFilter(query, "grade", parameters, grade);
         if (nameQuery != null && !nameQuery.isBlank()) {
             query.append(" AND lower(name) LIKE :name");
-            parameters.and("name", "%" + nameQuery.toLowerCase() + "%");
+            parameters.put("name", "%" + nameQuery.toLowerCase() + "%");
         }
         return executeFilter(query.toString(), parameters, pagination);
     }
@@ -88,9 +87,11 @@ public class RoleServiceImpl extends ReactiveCrudService<RoleEntity, UUID> imple
         StringBuilder query = new StringBuilder("FROM RoleEntity r LEFT JOIN FETCH r.users u");
         query.append(" WHERE ").append(roleFilter);
         if (!canReadAnyUser) query.append(" AND u.role.grade < :clientGrade");
-        Parameters parameters = Parameters.with("ids", ids);
-        if (!canReadAnyRole || !canReadAnyUser) parameters.and("clientGrade", clientRole.getGrade());
-        return roleRepository.find(query.toString(), parameters.map()).list().map(items -> {
+        Map<String, Object> parameters = new HashMap<>() {{
+            put("ids", ids);
+        }};
+        if (!canReadAnyRole || !canReadAnyUser) parameters.put("clientGrade", clientRole.getGrade());
+        return roleRepository.find(query.toString(), parameters).list().map(items -> {
             Map<RoleEntity, List<UserEntity>> roleUsersMap = new HashMap<>();
             items.forEach(e -> roleUsersMap.get(e).addAll(e.getUsers()));
             return Result.ok(roleUsersMap);
@@ -146,11 +147,13 @@ public class RoleServiceImpl extends ReactiveCrudService<RoleEntity, UUID> imple
         boolean canDeleteRole = clientRole.getAuthorities().contains(Authority.ROLE_DELETE);
         if (!canDeleteAnyRole && !canDeleteRole) return Uni.createFrom().item(Result.forbidden());
         String query = canDeleteAnyRole ? "FROM RoleEntity r WHERE r.id IN :ids" : "FROM RoleEntity r WHERE r.id IN :ids AND r.grade < :clientGrade";
-        Parameters parameters = new Parameters().and("ids", ids);
-        if (!canDeleteAnyRole) parameters.and("clientGrade", clientRole.getGrade());
-        return roleRepository.find(query, parameters.map()).list().chain(authorizedRoles -> {
+        Map<String, Object> parameters = new HashMap<>() {{
+            put("ids", ids);
+        }};
+        if (!canDeleteAnyRole) parameters.put("clientGrade", clientRole.getGrade());
+        return roleRepository.find(query, parameters).list().chain(authorizedRoles -> {
             if (authorizedRoles.size() != ids.size()) return Uni.createFrom().item(Result.notFound());
-            return roleRepository.find("FROM RoleEntity r WHERE r.id IN :ids AND u.users IS NOT EMPTY", parameters.map()).firstResult().chain(relations -> {
+            return roleRepository.find("FROM RoleEntity r WHERE r.id IN :ids AND u.users IS NOT EMPTY", parameters).firstResult().chain(relations -> {
                 if (relations != null) return Uni.createFrom().item(Result.badRequest("Some roles contain users, make sure to assign new roles to current users and try again"));
                 return super.deleteById(ids);
             });

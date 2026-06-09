@@ -4,15 +4,13 @@ import com.egorgoncharov.krot.backend.dto.service.Result;
 import com.egorgoncharov.krot.backend.dto.service.filter.TimeRangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.HistoricalSessionEntity;
 import com.egorgoncharov.krot.backend.service.common.CrudService;
 import io.smallrye.mutiny.Uni;
 
 import java.util.List;
 import java.util.UUID;
 
-public interface UserService extends CrudService<UserEntity, UUID> {
-    Uni<Result<Page<UserEntity>>> filter(List<UUID> ids, Boolean active, TimeRangeFilter creationTime, UUID roleId, String usernameQuery, PaginationOptions pagination);
-
-    Uni<Result<Void>> updatePassword(UserEntity user, String newPassword);
+public interface HistoricalSessionService extends CrudService<HistoricalSessionEntity, UUID> {
+    Uni<Result<Page<HistoricalSessionEntity>>> filter(List<UUID> ids, UUID userOwnerId, UUID deviceOwnerId, TimeRangeFilter validUntilTime, TimeRangeFilter creationTime, PaginationOptions pagination);
 }

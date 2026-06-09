@@ -4,8 +4,8 @@ import com.egorgoncharov.krot.backend.dto.service.Result;
 import com.egorgoncharov.krot.backend.dto.service.filter.NumericalRangeFilter;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.entity.RoleEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.RoleEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
 import com.egorgoncharov.krot.backend.service.common.CrudService;
 import io.smallrye.mutiny.Uni;
 

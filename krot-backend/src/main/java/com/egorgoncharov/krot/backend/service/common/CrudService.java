@@ -1,7 +1,7 @@
 package com.egorgoncharov.krot.backend.service.common;
 
 import com.egorgoncharov.krot.backend.dto.service.Result;
-import com.egorgoncharov.krot.backend.model.common.Identifiable;
+import com.egorgoncharov.krot.backend.model.Identifiable;
 import com.egorgoncharov.krot.backend.service.helper.MutinyHelper;
 import io.smallrye.mutiny.Uni;
 

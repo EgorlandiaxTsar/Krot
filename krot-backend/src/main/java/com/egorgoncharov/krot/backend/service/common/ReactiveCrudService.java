@@ -3,23 +3,23 @@ package com.egorgoncharov.krot.backend.service.common;
 import com.egorgoncharov.krot.backend.dto.service.Result;
 import com.egorgoncharov.krot.backend.dto.service.pagination.Page;
 import com.egorgoncharov.krot.backend.dto.service.pagination.PaginationOptions;
-import com.egorgoncharov.krot.backend.model.common.Identifiable;
-import com.egorgoncharov.krot.backend.model.common.ReactiveRepository;
+import com.egorgoncharov.krot.backend.model.Identifiable;
+import com.egorgoncharov.krot.backend.model.relational.RelationalReactiveRepository;
 import com.egorgoncharov.krot.backend.service.helper.MessageHelper;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.panache.common.Parameters;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 
 import java.util.List;
+import java.util.Map;
 
 public abstract class ReactiveCrudService<T extends Identifiable<I>, I> implements CrudService<T, I> {
     @Inject
     ObjectMapper objectMapper;
 
-    protected abstract ReactiveRepository<T, I> repository();
+    protected abstract RelationalReactiveRepository<T, I> repository();
 
     @Override
     public Uni<Result<T>> find(I id) {
@@ -48,8 +48,8 @@ public abstract class ReactiveCrudService<T extends Identifiable<I>, I> implemen
         });
     }
 
-    protected Uni<Result<Page<T>>> executeFilter(String query, Parameters parameters, PaginationOptions pagination) {
-        return repository().find(query, parameters.map()).page(io.quarkus.panache.common.Page.of(pagination.getPage(), pagination.getLimit())).list().chain(items -> repository().count(query, parameters.map()).map(count -> Result.ok(new Page<>(items, count, pagination.getLimit(), pagination.getPage()))));
+    protected Uni<Result<Page<T>>> executeFilter(String query, Map<String, Object> parameters, PaginationOptions pagination) {
+        return repository().find(query, parameters).page(io.quarkus.panache.common.Page.of(pagination.getPage(), pagination.getLimit())).list().chain(items -> repository().count(query, parameters).map(count -> Result.ok(new Page<>(items, count, pagination.getLimit(), pagination.getPage()))));
     }
 
     protected T patchMerge(T base, T patch) {

@@ -1,7 +1,7 @@
-package com.egorgoncharov.krot.backend.model.entity;
+package com.egorgoncharov.krot.backend.model.relational.entity;
 
-import com.egorgoncharov.krot.backend.model.common.Identifiable;
-import com.egorgoncharov.krot.backend.model.common.Nameable;
+import com.egorgoncharov.krot.backend.model.Identifiable;
+import com.egorgoncharov.krot.backend.model.Nameable;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -37,7 +37,7 @@ public class UserEntity implements Identifiable<UUID>, Nameable {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "owner")
     private List<ProgramEntity> programs;
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "userOwner")
-    private List<SessionEntity> sessions;
+    private List<HistoricalSessionEntity> sessions;
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "collaborator")
     private List<DeviceCollaboratorEntity> deviceCollaborations;
 

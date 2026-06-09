@@ -1,6 +1,6 @@
 package com.egorgoncharov.krot.backend.dto.security.auth.session;
 
-import com.egorgoncharov.krot.backend.model.entity.SessionEntity;
+import com.egorgoncharov.krot.backend.model.redis.entity.SessionEntity;
 import lombok.Getter;
 import lombok.Setter;
 

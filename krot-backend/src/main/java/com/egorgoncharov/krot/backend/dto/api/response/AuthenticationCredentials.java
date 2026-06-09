@@ -13,10 +13,10 @@ import lombok.*;
 @ToString
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class AuthenticationCredentials {
-    @JsonProperty("src")
-    private String src;
-    @JsonProperty("session")
-    private String sessionID;
+    @JsonProperty("sessionReference")
+    private String sessionReference;
+    @JsonProperty("sessionId")
+    private String sessionId;
     @JsonProperty("key")
     private String encryptionKey;
     @JsonProperty("expirationTimestamp")

@@ -2,9 +2,10 @@ package com.egorgoncharov.krot.backend.dto.service.filter;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.quarkus.panache.common.Parameters;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Getter
@@ -18,7 +19,7 @@ public class RangeFilter<T> {
     @JsonProperty("max")
     private T max;
 
-    public static <T extends RangeFilter<?>> void applyNullableRangeFilter(StringBuilder query, String field, Parameters parameters, NullableValueFilter<T> filter) {
+    public static <T extends RangeFilter<?>> void applyNullableRangeFilter(StringBuilder query, String field, Map<String, Object> parameters, NullableValueFilter<T> filter) {
         if (filter == null) return;
         if (!filter.isRequirePresence()) {
             query.append(" AND ").append(field).append(" IS NULL");
@@ -31,32 +32,32 @@ public class RangeFilter<T> {
         }
     }
 
-    public static void applyNullableFilter(StringBuilder query, String field, Parameters parameters, NullableValueFilter<?> filter) {
+    public static void applyNullableFilter(StringBuilder query, String field, Map<String, Object> parameters, NullableValueFilter<?> filter) {
         if (filter == null) return;
         if (!filter.isRequirePresence()) {
             query.append(" AND ").append(field).append(" IS NULL");
         } else {
             if (filter.getFilter() != null) {
                 query.append(" AND ").append(field).append(" = :").append(field);
-                parameters.and(field, filter.getFilter());
+                parameters.put(field, filter.getFilter());
             } else {
                 query.append(" AND ").append(field).append(" IS NOT NULL");
             }
         }
     }
 
-    public static void applyRangeFilter(StringBuilder query, String field, Parameters parameters, RangeFilter<?> filter) {
+    public static void applyRangeFilter(StringBuilder query, String field, Map<String, Object> parameters, RangeFilter<?> filter) {
         if (filter == null) return;
         if (filter.isCorrect()) {
             if (filter.getMin() != null) {
                 String minValueName = "min" + StringUtils.capitalize(field);
                 query.append(" AND ").append(field).append(" >= :").append(minValueName);
-                parameters.and(minValueName, filter.getMin());
+                parameters.put(minValueName, filter.getMin());
             }
             if (filter.getMax() != null) {
                 String maxValueName = "min" + StringUtils.capitalize(field);
                 query.append(" AND ").append(field).append(" >= :").append(maxValueName);
-                parameters.and(maxValueName, filter.getMax());
+                parameters.put(maxValueName, filter.getMax());
             }
         }
     }

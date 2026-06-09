@@ -1,9 +1,9 @@
 package com.egorgoncharov.krot.backend.dto.api.response;
 
 import com.egorgoncharov.krot.backend.dto.api.request.EntityReflection;
-import com.egorgoncharov.krot.backend.model.entity.DeviceCollaboratorEntity;
-import com.egorgoncharov.krot.backend.model.entity.DeviceEntity;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.DeviceCollaboratorEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.DeviceEntity;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
 import com.egorgoncharov.krot.backend.service.helper.TypesHelper;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

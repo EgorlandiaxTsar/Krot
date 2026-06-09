@@ -2,9 +2,9 @@ package com.egorgoncharov.krot.backend.security.session;
 
 import com.egorgoncharov.krot.backend.dto.security.auth.principal.Principal;
 import com.egorgoncharov.krot.backend.dto.security.auth.principal.PrincipalType;
-import com.egorgoncharov.krot.backend.model.entity.UserEntity;
-import com.egorgoncharov.krot.backend.model.repository.DeviceRepository;
-import com.egorgoncharov.krot.backend.model.repository.UserRepository;
+import com.egorgoncharov.krot.backend.model.relational.entity.UserEntity;
+import com.egorgoncharov.krot.backend.model.relational.repository.DeviceRepository;
+import com.egorgoncharov.krot.backend.model.relational.repository.UserRepository;
 import com.egorgoncharov.krot.backend.security.Authority;
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.security.identity.AuthenticationRequestContext;
