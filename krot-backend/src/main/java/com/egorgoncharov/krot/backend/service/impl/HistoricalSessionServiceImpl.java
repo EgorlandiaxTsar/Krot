@@ -74,13 +74,14 @@ public class HistoricalSessionServiceImpl extends ReactiveCrudService<Historical
             parameters.put("ids", ids);
         }
         if (userOwnerId != null) {
-            query.append(" AND userOwner.id = :userOwnerId");
+            query.append(" AND (userOwner.id = :userOwnerId");
             parameters.put("userOwnerId", userOwnerId);
         }
         if (deviceOwnerId != null) {
-            query.append(" AND deviceOwner.id = :deviceOwnerId");
+            query.append(" OR deviceOwner.id = :deviceOwnerId");
             parameters.put("deviceOwnerId", deviceOwnerId);
         }
+        query.append(")");
         RangeFilter.applyRangeFilter(query, "validUntil", parameters, validUntilTime);
         RangeFilter.applyRangeFilter(query, "createdAt", parameters, creationTime);
         return executeFilter(query.toString(), parameters, pagination);
