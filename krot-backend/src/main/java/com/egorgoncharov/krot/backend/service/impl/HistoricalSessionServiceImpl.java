@@ -92,7 +92,7 @@ public class HistoricalSessionServiceImpl extends ReactiveCrudService<Historical
     public Uni<Result<HistoricalSessionEntity>> create(HistoricalSessionEntity o) {
         boolean isUser = o.getUserOwner() != null;
         String password = isUser ? o.getUserOwner().getPassword() : o.getDeviceOwner().getPassword();
-        Uni<?> entityUni = isUser ? userRepository.findById(o.getUserOwner().getId()) : deviceRepository.findById(o.getDeviceOwner().getId());
+        Uni<?> entityUni = isUser ? userRepository.findByName(o.getUserOwner().getUsername()) : deviceRepository.findById(o.getDeviceOwner().getId());
         return entityUni.chain(entity -> {
             if (entity == null) return Uni.createFrom().item(Result.notFound());
             String entityPassword = isUser ? ((UserEntity) (entity)).getPassword() : ((DeviceEntity) (entity)).getPassword();

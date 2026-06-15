@@ -36,7 +36,7 @@ public class AuthenticationResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<RestResponse<ApiResponse<AuthenticationCredentials>>> authHandshake(RoutingContext context, @Valid AuthenticationHandshakeRequest handshakeCredentials) {
         HandshakeSession handshakeSession = context.get("handshakeSession");
-        return authenticationService.login(SessionEntity.builder().ownerId(TypesHelper.toUUID(handshakeCredentials.getId())).isOwnerDevice(handshakeSession.getTarget() == PrincipalType.DEVICE).handshakeKey(handshakeSession.getKey()).build(), handshakeCredentials.getPassword()).chain(result -> {
+        return authenticationService.login(SessionEntity.builder().isOwnerDevice(handshakeSession.getTarget() == PrincipalType.DEVICE).handshakeKey(handshakeSession.getKey()).build(), handshakeCredentials.getIdentifier(), handshakeCredentials.getPassword()).chain(result -> {
             if (result.getCode() != 200) return new ApiResponse<AuthenticationCredentials>(result.toApiMetadata(), null, null).toUniRestResponse();
             if (result.getResult().isEmpty()) return new ApiResponse<AuthenticationCredentials>(Result.error().toApiMetadata(), null, null).toUniRestResponse();
             SessionEntity session = result.getResult().get();

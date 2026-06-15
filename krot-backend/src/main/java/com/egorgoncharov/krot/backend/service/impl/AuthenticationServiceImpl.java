@@ -13,6 +13,7 @@ import com.egorgoncharov.krot.backend.model.relational.repository.UserRepository
 import com.egorgoncharov.krot.backend.security.Authority;
 import com.egorgoncharov.krot.backend.service.AuthenticationService;
 import com.egorgoncharov.krot.backend.service.helper.SecurityHelper;
+import com.egorgoncharov.krot.backend.service.helper.TypesHelper;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,12 +44,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public Uni<Result<SessionEntity>> login(SessionEntity metadata, String password) {
-        return historicalSessionService.create(HistoricalSessionEntity.builder().userOwner(metadata.isOwnerDevice() ? null : UserEntity.builder().id(metadata.getOwnerId()).password(password).build()).deviceOwner(metadata.isOwnerDevice() ? DeviceEntity.builder().id(metadata.getOwnerId()).password(password).build() : null).validUntil(OffsetDateTime.now().plusMinutes(sessionConfig.sessionDuration())).build()).chain(result -> {
+    public Uni<Result<SessionEntity>> login(SessionEntity metadata, String identifier, String password) {
+        return historicalSessionService.create(HistoricalSessionEntity.builder().userOwner(metadata.isOwnerDevice() ? null : UserEntity.builder().username(identifier).password(password).build()).deviceOwner(metadata.isOwnerDevice() ? DeviceEntity.builder().id(TypesHelper.toUUID(identifier)).password(password).build() : null).validUntil(OffsetDateTime.now().plusMinutes(sessionConfig.sessionDuration())).build()).chain(result -> {
             if (result.getCode() != 200 || result.getResult().isEmpty()) return Uni.createFrom().item(result.nullCast());
             HistoricalSessionEntity historicalSession = result.getResult().get();
             metadata.setId(UUID.randomUUID());
             metadata.setSessionReference(UUID.randomUUID());
+            metadata.setEncryptionKey(SecurityHelper.generateXCC20Key());
             metadata.setValidUntil(historicalSession.getValidUntil());
             metadata.setLastUsed(historicalSession.getCreatedAt());
             metadata.setCreatedAt(historicalSession.getCreatedAt());

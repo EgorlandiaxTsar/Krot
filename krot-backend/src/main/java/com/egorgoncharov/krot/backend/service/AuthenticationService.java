@@ -7,7 +7,7 @@ import io.smallrye.mutiny.Uni;
 import java.util.UUID;
 
 public interface AuthenticationService {
-    Uni<Result<SessionEntity>> login(SessionEntity metadata, String password);
+    Uni<Result<SessionEntity>> login(SessionEntity metadata, String identifier, String password);
 
     Uni<Result<SessionEntity>> logout(UUID sessionId);
 }

@@ -3,8 +3,8 @@ package com.egorgoncharov.krot.backend.dto.api.request.auth;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
@@ -18,9 +18,10 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class AuthenticationHandshakeRequest {
     @NotNull
-    @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-    @JsonProperty("id")
-    private String id;
+    @NotBlank
+    @Size(min = 3, max = 32)
+    @JsonProperty("identifier")
+    private String identifier;
     @NotNull
     @Size(min = 8, max = 32)
     @JsonProperty("password")
