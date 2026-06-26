@@ -4,6 +4,96 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Thin */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-Thin.ttf") format("truetype");
+  font-weight: 100;
+  font-style: normal;
+}
+
+/* Thin Italic */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-ThinItalic.ttf") format("truetype");
+  font-weight: 100;
+  font-style: italic;
+}
+
+/* Light */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+
+/* Light Italic */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-LightItalic.ttf") format("truetype");
+  font-weight: 300;
+  font-style: italic;
+}
+
+/* Regular */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Italic */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Bold */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Bold Italic */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* Black */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+}
+
+/* Black Italic */
+@font-face {
+  font-display: block;
+  font-family: "Lato";
+  src: url("/assets/Lato/Lato-BlackItalic.ttf") format("truetype");
+  font-weight: 900;
+  font-style: italic;
+}
+
 
 :root {
   --radius: 0.625rem;
@@ -38,6 +128,8 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  font-family: "Lato", system-ui, sans-serif;
 }
 
 .dark {

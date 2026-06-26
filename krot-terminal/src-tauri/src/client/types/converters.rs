@@ -3,7 +3,7 @@ use crate::client::error::ClientError::ConversionFailed;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 
-const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
+pub const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
 
 pub fn b16uuid_to_string(src: &[u8; 16], out: &mut [u8; 36]) {
     let mut src_idx = 0;
@@ -34,10 +34,6 @@ pub fn bytes_to_b64(src: &[u8], out: &mut [u8]) -> Result<usize, ClientError> {
 }
 
 pub fn b64_to_bytes(src: &[u8], out: &mut [u8]) -> Result<usize, ClientError> {
-    let required_len = base64::decoded_len_estimate(src.len());
-    if out.len() < required_len {
-        return Err(ConversionFailed);
-    }
     let len = BASE64_STANDARD
         .decode_slice(src, out)
         .map_err(|_| ConversionFailed)?;

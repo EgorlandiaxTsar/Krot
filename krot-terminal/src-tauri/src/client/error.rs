@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Eq)]
+use serde::Serialize;
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub enum ClientError {
     BadRequest,
     Unauthorized,

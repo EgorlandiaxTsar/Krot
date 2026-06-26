@@ -1,3 +1,4 @@
+use crate::client::api::model::RequestMetadata;
 use crate::client::types::serde_helpers::serialize;
 use serde::Serialize;
 
@@ -36,19 +37,19 @@ impl Default for AuthenticationRequest {
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Serialize)]
 pub struct DisconnectRequest {
-    #[serde(serialize_with = "serialize::varchar")]
-    pub session_id: [u8; 16],
-    pub timestamp: i64,
+    pub metadata: RequestMetadata,
 }
 
 impl Default for DisconnectRequest {
     fn default() -> Self {
         Self {
-            session_id: [0u8; 16],
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as i64,
+            metadata: RequestMetadata {
+                session_id: [0u8; 16],
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as i64,
+            }
         }
     }
 }

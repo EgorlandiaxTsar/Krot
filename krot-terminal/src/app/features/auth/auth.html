@@ -1,0 +1,68 @@
+<div class="w-md mt-30 mx-auto">
+    <div class="w-full mb-10 text-center">
+        <h1 class="text-2xl text-center font-bold">Authentication</h1>
+        <p class="text-muted-foreground mt-2 text-sm">Provide Krot Terminal with a server and login with your
+            credentials</p>
+    </div>
+    @if (authErrorMessage() != null) {
+        <z-alert class="mt-10" zType="destructive" zTitle="Authentication Failed" [zDescription]="authErrorMessage() ?? ''"/>
+    }
+    <z-card class="w-full mt-3 px-3 py-7" [zTitle]="authProgress() == 0 ? 'Server' : 'Credentials'">
+        @if (authProgress() == 0) {
+            <form [formGroup]="backendAddressForm" (ngSubmit)="onBackendSubmit()">
+                <div class="w-full mb-10 flex justify-between gap-3">
+                    <z-form-field class="w-3/10">
+                        <label for="schema" z-form-label zRequired>Schema</label>
+                        <z-form-control>
+                            <z-select zPlaceholder="Schema" formControlName="schema">
+                                <z-select-item zValue="http">http://</z-select-item>
+                                <z-select-item zValue="https">https://</z-select-item>
+                            </z-select>
+                        </z-form-control>
+                    </z-form-field>
+                    <z-form-field class="w-5/10">
+                        <label for="ip" z-form-label zRequired>IPv4</label>
+                        <z-form-control>
+                            <input z-input [zStatus]="fieldState(backendAddressFormIp)" id="ip" type="text" placeholder="127.0.0.1" formControlName="ip"/>
+                        </z-form-control>
+                    </z-form-field>
+                    <z-form-field class="w-2/10">
+                        <label for="port" z-form-label zRequired>Port</label>
+                        <z-form-control>
+                            <input z-input [zStatus]="fieldState(backendAddressFormPort)" id="port" type="number" placeholder="1111" formControlName="port"/>
+                        </z-form-control>
+                    </z-form-field>
+                </div>
+                <button z-button zFull zType="default" [zLoading]="authIsSubmitting()" type="submit" [disabled]="backendAddressForm.invalid">
+                    Next
+                    <z-kbd class="ml-2">↵</z-kbd>
+                </button>
+            </form>
+        } @else if (authProgress() == 50) {
+            <form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()">
+                <z-form-field class="w-full mb-3">
+                    <label for="username" z-form-label zRequired>Username</label>
+                    <z-form-control>
+                        <input z-input [zStatus]="fieldState(loginUsername)" id="username" type="text" placeholder="JohnDoe123" formControlName="username"/>
+                    </z-form-control>
+                </z-form-field>
+                <z-form-field class="w-full mb-10">
+                    <label for="password" z-form-label zRequired>Password</label>
+                    <z-form-control>
+                        <input z-input [zStatus]="fieldState(loginPassword)" id="password" type="password" placeholder="Abcde123!" formControlName="password"/>
+                    </z-form-control>
+                </z-form-field>
+                <div class="w-full flex justify-between gap-3">
+                    <button z-button class="w-15" zType="secondary" type="button" (click)="onBackRequest()" [disabled]="authIsSubmitting()">
+                        <ng-icon name="lucideArrowLeft"/>
+                    </button>
+                    <button z-button class="flex-1" zType="default" type="submit" [zLoading]="authIsSubmitting()" [disabled]="loginForm.invalid">
+                        Authenticate
+                        <z-kbd class="ml-2">↵</z-kbd>
+                    </button>
+                </div>
+            </form>
+        }
+        <z-progress-bar class="mt-10" [progress]="authProgress()"></z-progress-bar>
+    </z-card>
+</div>

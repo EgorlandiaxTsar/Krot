@@ -1,4 +1,4 @@
-use crate::client::api::model::AuthenticationCredentials;
+use crate::client::api::model::{AuthenticationCredentials, RequestMetadata};
 use crate::client::api::request_model::{AuthenticationRequest, DisconnectRequest};
 use crate::client::api::response_model::AuthenticationResponse;
 use crate::client::confidential::{Credentials, Session};
@@ -6,7 +6,7 @@ use crate::client::error::ClientError;
 use crate::client::types::converters::{b16uuid_to_string, b64_to_bytes, bytes_to_b64};
 use crate::crypto::cipher::{ChaCha20Poly1305Cipher, Decryptor, Encryptor};
 use crate::crypto::ephemeral::EphemeralEngine;
-use crate::security::keystore::{ApplicationKeystore, Keystore};
+use crate::security::keystore::{ApplicationKeystore, CredentialsKeystore, Keystore, SessionKeystore};
 use bytes::Bytes;
 use rand::rngs::SysRng;
 use rand_core::TryRng;
@@ -24,34 +24,34 @@ pub enum RequestType {
 }
 
 pub struct KrotClient {
-    http: Client,
+    pub http: Client,
     keystore: Arc<ApplicationKeystore>,
     cipher: ChaCha20Poly1305Cipher,
     ephemeral_engine: EphemeralEngine,
     addr: [u8; 4],
+    port: u16,
     secured: bool,
 }
 
 impl KrotClient {
-    pub fn new(keystore: Arc<ApplicationKeystore>) -> Result<Self, ClientError> {
+    pub fn new(keystore: Arc<ApplicationKeystore>) -> Self {
         let mut client = KrotClient {
             http: Client::new(),
             keystore,
             cipher: ChaCha20Poly1305Cipher,
             ephemeral_engine: EphemeralEngine,
             addr: [0u8; 4],
+            port: 0,
             secured: false,
         };
-        let credentials = client.get_credentials()?;
-        client.addr = credentials.addr;
-        client.secured = credentials.secured;
-        Ok(client)
+        let _ = client.refresh_credentials();
+        client
     }
 
-    pub async fn hello(client: &Client, addr: &[u8; 4], secured: bool) -> Result<(), ClientError> {
+    pub async fn hello(client: &Client, addr: &[u8; 4], port: &u16, secured: bool) -> Result<(), ClientError> {
         let mut path_buf = [0u8; 256];
         path_buf[..6].copy_from_slice(b"/hello");
-        Self::req_get_unauthenticated(client, addr, &path_buf, secured, &mut [0u8; 24]).await?;
+        Self::req_get_unauthenticated(client, addr, port, &path_buf, secured, &mut [0u8; 24]).await?;
         Ok(())
     }
 
@@ -62,6 +62,7 @@ impl KrotClient {
         Self::req_get_unauthenticated(
             &self.http,
             &self.addr,
+            &self.port,
             &path_buf,
             self.secured,
             &mut res_buf,
@@ -80,8 +81,7 @@ impl KrotClient {
         let mut b64_buf = [0u8; S];
         let len =
             bytes_to_b64(data, &mut b64_buf).map_err(|_| ClientError::HeaderCompositionFailed)?;
-        let b64_str = std::str::from_utf8(&b64_buf[..len])
-            .map_err(|_| ClientError::HeaderCompositionFailed)?;
+        let b64_str = std::str::from_utf8(&b64_buf[..len]).map_err(|_| ClientError::HeaderCompositionFailed)?;
         headers.insert(
             HeaderName::from_static(name),
             HeaderValue::from_str(b64_str).map_err(|_| ClientError::HeaderCompositionFailed)?,
@@ -93,12 +93,13 @@ impl KrotClient {
     async fn req_get_unauthenticated(
         client: &Client,
         addr: &[u8; 4],
+        port: &u16,
         path: &[u8; 256],
         secured: bool,
         out: &mut [u8],
     ) -> Result<usize, ClientError> {
         let mut url_buf = [0u8; 278];
-        Self::url(addr, path, secured, &mut url_buf)?;
+        Self::url(addr, port, path, secured, &mut url_buf)?;
         let url =
             std::str::from_utf8(&url_buf[0..url_buf.iter().position(|&b| b == 0).unwrap_or(278)])
                 .map_err(|_| ClientError::UrlError)?;
@@ -130,6 +131,7 @@ impl KrotClient {
     #[inline(always)]
     fn url(
         addr: &[u8; 4],
+        port: &u16,
         path: &[u8; 256],
         secured: bool,
         out: &mut [u8],
@@ -140,10 +142,9 @@ impl KrotClient {
         let path_str = std::str::from_utf8(&path[..path_len]).map_err(|_| ClientError::UrlError)?;
         write!(
             &mut cursor,
-            "{}://{}.{}.{}.{}{}",
-            scheme, addr[0], addr[1], addr[2], addr[3], path_str
-        )
-            .map_err(|_| ClientError::UrlError)?;
+            "{}://{}.{}.{}.{}:{}{}",
+            scheme, addr[0], addr[1], addr[2], addr[3], port, path_str
+        ).map_err(|_| ClientError::UrlError)?;
         Ok(())
     }
 
@@ -167,7 +168,7 @@ impl KrotClient {
             Err(ClientError::SessionExpired) => {
                 self.keystore
                     .session_keystore
-                    .drop(0)
+                    .drop(SessionKeystore::IDX)
                     .map_err(|_| ClientError::SessionExpired)?;
                 return Err(ClientError::SessionExpired);
             }
@@ -175,7 +176,7 @@ impl KrotClient {
         };
         let session = self.get_session()?;
         let mut url_buf = [0u8; 278];
-        Self::url(&self.addr, path, self.secured, &mut url_buf)?;
+        Self::url(&self.addr, &self.port, path, self.secured, &mut url_buf)?;
         let url =
             std::str::from_utf8(&url_buf[0..url_buf.iter().position(|&b| b == 0).unwrap_or(278)])
                 .map_err(|_| ClientError::UrlError)?;
@@ -185,13 +186,13 @@ impl KrotClient {
             RequestType::Patch => self.http.patch(url),
         };
         let mut body_buf = [0u8; ST];
-        self.generate_body(data, &mut body_buf)?;
+        let body_len = self.generate_body(data, &mut body_buf)?;
         let mut nonce_buf = [0u8; 12];
         let mut tag_buf = [0u8; 16];
         if !method.eq(&RequestType::Get) {
             req = self.set_body(
                 req,
-                &mut body_buf,
+                &mut body_buf[..body_len],
                 encrypt,
                 &session.encryption_key,
                 &mut nonce_buf,
@@ -203,22 +204,15 @@ impl KrotClient {
                 self.set_authentication_headers(req, &session.reference_key, &nonce_buf, &tag_buf)?;
         }
         let response = req.send().await.map_err(|_| ClientError::NetworkError)?;
-        let res_nonce = response.headers().get("X-Response-Nonce").ok_or(ClientError::DecryptionFailed)?;
-        let res_tag = response.headers().get("X-Response-Tag").ok_or(ClientError::DecryptionFailed)?;
         let mut res_nonce_buf = [0u8; 12];
         let mut res_tag_buf = [0u8; 16];
-        b64_to_bytes(&res_nonce.as_bytes(), &mut res_nonce_buf)?;
-        b64_to_bytes(&res_tag.as_bytes(), &mut res_tag_buf)?;
-        let status_code = self
-            .process_response::<E, SE>(
-                response,
-                decrypt,
-                &session.encryption_key,
-                &res_nonce_buf,
-                &res_tag_buf,
-                out,
-            )
-            .await?;
+        if decrypt {
+            let res_nonce = response.headers().get("x-response-nonce").ok_or(ClientError::DecryptionFailed)?;
+            let res_tag = response.headers().get("x-response-tag").ok_or(ClientError::DecryptionFailed)?;
+            b64_to_bytes(&res_nonce.as_bytes(), &mut res_nonce_buf)?;
+            b64_to_bytes(&res_tag.as_bytes(), &mut res_tag_buf)?;
+        }
+        let status_code = response.status().as_u16();
         if status_code > 399 {
             return Err(match status_code {
                 400 => ClientError::BadRequest,
@@ -230,6 +224,16 @@ impl KrotClient {
                 _ => ClientError::InternalServerError,
             });
         }
+        self
+            .process_response::<E, SE>(
+                response,
+                decrypt,
+                &session.encryption_key,
+                &res_nonce_buf,
+                &res_tag_buf,
+                out,
+            )
+            .await?;
         Ok(())
     }
 
@@ -285,7 +289,7 @@ impl KrotClient {
         let mut url_buf = [0u8; 278];
         let mut path_buf = [0u8; 256];
         path_buf[0..19].copy_from_slice(b"/api/auth/handshake");
-        Self::url(&self.addr, &path_buf, self.secured, &mut url_buf)?;
+        Self::url(&self.addr, &self.port, &path_buf, self.secured, &mut url_buf)?;
         let url =
             std::str::from_utf8(&url_buf[0..url_buf.iter().position(|&b| b == 0).unwrap_or(278)])
                 .map_err(|_| ClientError::UrlError)?;
@@ -299,11 +303,11 @@ impl KrotClient {
         let mut req_body = AuthenticationRequest::default();
         req_body.identifier = credentials.name;
         req_body.password = credentials.pwd;
-        let mut body_buf = [0u8; 1024];
-        self.generate_body(&req_body, &mut body_buf)?;
+        let mut body_buf = [0u8; 2048];
+        let body_len = self.generate_body(&req_body, &mut body_buf)?;
         req = self.set_body(
             req,
-            &mut body_buf,
+            &mut body_buf[..body_len],
             true,
             &mut key_buf,
             &mut nonce_buf,
@@ -312,16 +316,13 @@ impl KrotClient {
         req = self.set_handshake_headers(req, &client_pubkey_buf, &nonce_buf, &tag_buf)?;
         let response = req.send().await.map_err(|_| ClientError::NetworkError)?;
         let mut response_body = AuthenticationResponse::default();
-        let status_code = self
-            .process_response::<AuthenticationResponse, 1024>(
-                response,
-                true,
-                &key_buf,
-                &nonce_buf,
-                &tag_buf,
-                &mut response_body,
-            )
-            .await?;
+        let res_nonce = response.headers().get("x-response-nonce").ok_or(ClientError::DecryptionFailed)?;
+        let res_tag = response.headers().get("x-response-tag").ok_or(ClientError::DecryptionFailed)?;
+        let mut res_nonce_buf = [0u8; 12];
+        let mut res_tag_buf = [0u8; 16];
+        b64_to_bytes(&res_nonce.as_bytes(), &mut res_nonce_buf)?;
+        b64_to_bytes(&res_tag.as_bytes(), &mut res_tag_buf)?;
+        let status_code = response.status().as_u16();
         if status_code > 399 {
             return Err(match status_code {
                 400 => ClientError::BadRequest,
@@ -331,6 +332,15 @@ impl KrotClient {
                 _ => ClientError::InternalServerError,
             });
         }
+        self.process_response::<AuthenticationResponse, 2048>(
+            response,
+            true,
+            &key_buf,
+            &res_nonce_buf,
+            &res_tag_buf,
+            &mut response_body,
+        )
+            .await?;
         *out = response_body.data;
         Ok(())
     }
@@ -341,21 +351,23 @@ impl KrotClient {
         let mut path_buf = [0u8; 256];
         path_buf[..20].copy_from_slice(b"/api/auth/disconnect");
         let req_body = DisconnectRequest {
-            session_id: session.id,
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|_| ClientError::TimestampError)?
-                .as_millis() as i64,
+            metadata: RequestMetadata {
+                session_id: session.id,
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_err(|_| ClientError::TimestampError)?
+                    .as_millis() as i64,
+            }
         };
         self.req_post::<DisconnectRequest, [u8; 0], 512, 0>(
             &path_buf,
             &req_body,
             true,
-            true,
+            false,
             &mut [0u8; 0],
         )
             .await?;
-        self.keystore.session_keystore.drop(0).unwrap_or(());
+        self.keystore.session_keystore.drop(SessionKeystore::IDX).unwrap_or(());
         Ok(())
     }
 
@@ -370,24 +382,20 @@ impl KrotClient {
             return Err(ClientError::SessionAboutToExpire);
         }
         if expiration_diff <= 0 {
-            self.keystore.session_keystore.drop(0).unwrap_or(());
+            self.keystore.session_keystore.drop(SessionKeystore::IDX).unwrap_or(());
             return Err(ClientError::SessionExpired);
         }
         Ok(())
     }
 
-    #[inline(always)]
-    async fn refresh_session(&self) -> Result<(), ClientError> {
+    pub async fn refresh_session(&self) -> Result<(), ClientError> {
         let mut authentication_credentials = AuthenticationCredentials::default();
         self.authenticate(&mut authentication_credentials).await?;
-        self.keystore
-            .session_keystore
-            .drop(0)
-            .map_err(|_| ClientError::SessionNotFound)?;
+        let _ = self.keystore.session_keystore.drop(SessionKeystore::IDX);
         self.keystore
             .session_keystore
             .store(
-                0,
+                SessionKeystore::IDX,
                 &Session {
                     id: authentication_credentials.session_id,
                     reference_key: authentication_credentials.session_ref,
@@ -396,6 +404,14 @@ impl KrotClient {
                 },
             )
             .map_err(|_| ClientError::SessionNotFound)?;
+        Ok(())
+    }
+
+    pub fn refresh_credentials(&mut self) -> Result<(), ClientError> {
+        let credentials = self.get_credentials()?;
+        self.addr = credentials.addr;
+        self.port = credentials.port;
+        self.secured = credentials.secured;
         Ok(())
     }
 
@@ -408,7 +424,7 @@ impl KrotClient {
         };
         self.keystore
             .session_keystore
-            .read(0, &mut session)
+            .read(SessionKeystore::IDX, &mut session)
             .map_err(|_| ClientError::SessionNotFound)?;
         Ok(session)
     }
@@ -418,11 +434,12 @@ impl KrotClient {
             name: [0; 128],
             pwd: [0; 128],
             addr: [0; 4],
+            port: 0,
             secured: false,
         };
         self.keystore
             .credentials_keystore
-            .read(0, &mut credentials)
+            .read(CredentialsKeystore::IDX, &mut credentials)
             .map_err(|_| ClientError::CredentialsNotFound)?;
         Ok(credentials)
     }
@@ -439,14 +456,14 @@ impl KrotClient {
         let mut uuid_buf = [0u8; 36];
         b16uuid_to_string(session_reference, &mut uuid_buf);
         headers.insert(
-            HeaderName::from_static("X-Session-Reference"),
+            HeaderName::from_static("x-session-reference"),
             HeaderValue::from_str(
                 std::str::from_utf8(&uuid_buf).map_err(|_| ClientError::HeaderCompositionFailed)?,
             )
                 .map_err(|_| ClientError::HeaderCompositionFailed)?,
         );
-        Self::inject_b64_header::<16>(&mut headers, "X-Request-Nonce", nonce)?;
-        Self::inject_b64_header::<24>(&mut headers, "X-Request-Tag", tag)?;
+        Self::inject_b64_header::<16>(&mut headers, "x-request-nonce", nonce)?;
+        Self::inject_b64_header::<24>(&mut headers, "x-request-tag", tag)?;
         Ok(req.headers(headers))
     }
 
@@ -459,9 +476,9 @@ impl KrotClient {
         tag: &[u8; 16],
     ) -> Result<RequestBuilder, ClientError> {
         let mut headers = HeaderMap::new();
-        Self::inject_b64_header::<44>(&mut headers, "X-Key", client_pubkey)?;
-        Self::inject_b64_header::<16>(&mut headers, "X-Request-Nonce", nonce)?;
-        Self::inject_b64_header::<24>(&mut headers, "X-Request-Tag", tag)?;
+        Self::inject_b64_header::<44>(&mut headers, "x-key", client_pubkey)?;
+        Self::inject_b64_header::<16>(&mut headers, "x-request-nonce", nonce)?;
+        Self::inject_b64_header::<24>(&mut headers, "x-request-tag", tag)?;
         Ok(req.headers(headers))
     }
 
@@ -516,7 +533,10 @@ impl KrotClient {
     ) -> Result<usize, ClientError> {
         let out_buf_len = out.len();
         let mut cur = &mut out[..];
-        serde_json::to_writer(&mut cur, data).map_err(|_| ClientError::BodyCompositionFailed)?;
+        serde_json::to_writer(&mut cur, data).map_err(|e| {
+            println!("{}", e);
+            ClientError::BodyCompositionFailed
+        })?;
         Ok(out_buf_len - cur.len())
     }
 
@@ -529,8 +549,7 @@ impl KrotClient {
         nonce: &[u8; 12],
         tag: &[u8; 16],
         out: &mut T,
-    ) -> Result<u16, ClientError> {
-        let status_code = response.status().as_u16();
+    ) -> Result<(), ClientError> {
         if S > 0 {
             let response_buf = response
                 .bytes()
@@ -552,8 +571,11 @@ impl KrotClient {
                     .map_err(|_| ClientError::DecryptionFailed)?;
             }
             *out = serde_json::from_slice::<T>(&out_buf[..response_buf.len()])
-                .map_err(|_| ClientError::BodyParseFailed)?;
+                .map_err(|e| {
+                    println!("{}", e);
+                    ClientError::BodyParseFailed
+                })?;
         }
-        Ok(status_code)
+        Ok(())
     }
 }
