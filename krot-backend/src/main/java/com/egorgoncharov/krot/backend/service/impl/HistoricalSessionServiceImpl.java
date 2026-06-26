@@ -99,8 +99,10 @@ public class HistoricalSessionServiceImpl extends ReactiveCrudService<Historical
             if (!password.equals(entityPassword)) return Uni.createFrom().item(Result.forbidden());
             if (isUser) {
                 o.setDeviceOwner(null);
+                o.setUserOwner((UserEntity) entity);
             } else {
                 o.setUserOwner(null);
+                o.setDeviceOwner((DeviceEntity) entity);
             }
             OffsetDateTime now = OffsetDateTime.now();
             o.setValidUntil(now.plusMinutes(sessionConfig.sessionDuration()));
@@ -109,11 +111,13 @@ public class HistoricalSessionServiceImpl extends ReactiveCrudService<Historical
         });
     }
 
+    @WithTransaction
     @Override
     public Uni<Result<HistoricalSessionEntity>> update(HistoricalSessionEntity o) {
         return Uni.createFrom().item(Result.badRequest()); // Immutable
     }
 
+    @WithTransaction
     @Override
     public Uni<Result<List<HistoricalSessionEntity>>> deleteById(List<UUID> ids) {
         return Uni.createFrom().item(Result.badRequest()); // Persistent

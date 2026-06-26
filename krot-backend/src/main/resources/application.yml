@@ -1,8 +1,8 @@
 app:
   security:
     secured-transport-protocol:
-      enable-incoming: false
-      enable-outcoming: false
+      enable-incoming: true
+      enable-outcoming: true
     handshake:
       nonce-window: 86400000 # TODO: Testing value! Recommended is from 1000 to 5000
       private-key: sF6T9LT1AOjsEoPwD7NocuQvewQaCYyf9cR9F5upkW0=
@@ -27,3 +27,20 @@ quarkus:
   http:
     auth:
       proactive: false
+#  log:
+#    level: INFO
+#    category:
+#      "io.quarkus":
+#        level: DEBUG
+#
+#      "org.jboss.resteasy.reactive":
+#        level: TRACE
+#
+#      "io.vertx":
+#        level: DEBUG
+#
+#      "io.smallrye":
+#        level: DEBUG
+#
+#      "com.egorgoncharov":
+#        level: TRACE

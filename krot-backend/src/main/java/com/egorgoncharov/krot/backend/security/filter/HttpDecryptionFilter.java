@@ -10,6 +10,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.server.ServerRequestFilter;
 
@@ -33,6 +34,7 @@ public class HttpDecryptionFilter {
             if (result.getCode() == 200 && result.getResult().isPresent()) {
                 HandshakeSession session = result.getResult().get();
                 vertxContext.put("handshakeSession", session);
+                context.getHeaders().putSingle("Content-Type", MediaType.APPLICATION_JSON);
                 context.setEntityStream(new ByteArrayInputStream(session.getBody()));
             } else {
                 return Uni.createFrom().item(Response.status(result.getCode()).build());
@@ -42,6 +44,7 @@ public class HttpDecryptionFilter {
                 if (result.getCode() == 200 && result.getResult().isPresent()) {
                     vertxContext.put("requestSession", result.getResult().get());
                     context.setEntityStream(new ByteArrayInputStream(result.getResult().get().getBody()));
+                    context.getHeaders().putSingle("Content-Type", MediaType.APPLICATION_JSON);
                     return Uni.createFrom().nullItem();
                 } else {
                     return Uni.createFrom().item(Response.status(result.getCode()).build());

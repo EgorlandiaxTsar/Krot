@@ -24,13 +24,8 @@ public class SessionIdentityProvider implements IdentityProvider<SessionAuthenti
         RequestSession session = request.getSession();
         QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder();
         Principal principal = new Principal();
-        if (session.getSession().getUserOwner() != null) {
-            builder.setPrincipal(new QuarkusPrincipal(session.getSession().getUserOwner().getId().toString()));
-            principal.setType(PrincipalType.USER);
-        } else {
-            builder.setPrincipal(new QuarkusPrincipal(session.getSession().getDeviceOwner().getId().toString()));
-            principal.setType(PrincipalType.DEVICE);
-        }
+        builder.setPrincipal(new QuarkusPrincipal(session.getSession().getOwnerId().toString()));
+        principal.setType(session.getSession().isOwnerDevice() ? PrincipalType.DEVICE : PrincipalType.USER);
         builder.addAttribute("principal", principal);
         builder.addAttribute("session", session);
         return Uni.createFrom().item(builder.build());

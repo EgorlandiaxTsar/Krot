@@ -21,7 +21,7 @@ public interface RelationalReactiveRepository<T extends Identifiable<I>, I> exte
 
     default <E> Uni<List<T>> findBy(List<E> properties, String field) {
         if (properties == null || properties.isEmpty()) return Uni.createFrom().item(List.of());
-        return find("1=1 AND " + field + " IN :values", Map.of("values", properties.stream().map(E::toString).toList())).list();
+        return find("1=1 AND " + field + " IN :values", Map.of("values", properties)).list();
     }
 
     default <E> Uni<Boolean> existsBy(E property, String field, PropertyProvider<T, E> provider) {

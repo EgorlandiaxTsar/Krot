@@ -52,7 +52,7 @@ public class TCPTransportServiceImpl implements TCPTransportService {
             try {
                 byte[] decrypted = SecurityHelper.decrypt(bytesBody, handshakeKey, headers.getTag(), headers.getNonce());
                 JsonObject json = new JsonObject(Buffer.buffer(decrypted));
-                HandshakeSession session = new HandshakeSession(decrypted, json.getLong("timestamp"), handshakeKey, json.getString("id"), json.getString("password"), PrincipalType.valueOf(json.getString("target")));
+                HandshakeSession session = new HandshakeSession(decrypted, json.getLong("timestamp"), handshakeKey, json.getString("identifier"), json.getString("password"), PrincipalType.valueOf(json.getString("target")));
                 if (!session.isComplete()) return Result.badRequest();
                 if (Math.abs(session.getTimestamp() - Instant.now().toEpochMilli()) > handshakeConfig.nonceWindow()) return Result.forbidden();
                 return Result.ok(session);
