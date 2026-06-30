@@ -1,0 +1,63 @@
+<div
+        [ngClass]="{
+        'w-full h-full': viewState === 'fullscreen',
+        'hidden': viewState === 'hidden'
+        }"
+        [ngStyle]="viewState === 'fullscreen' ? {} : {
+        'position': 'absolute',
+        'transform': `translate3d(${position.x}px, ${position.y}px, 0)`,
+        'z-index': position.z,
+        'width.px': size.width,
+        'height.px': size.height,
+        }"
+        class="absolute bg-slate-950 rounded-xl shadow-2xl overflow-hidden"
+        (mousedown)="focus()">
+    <div
+            [ngClass]="{
+            'border-slate-800': !isFocused(),
+            'border-slate-500': isFocused()
+            }"
+            class="w-full h-8 px-1 flex justify-start items-center bg-slate-900 rounded-t-xl border-2">
+        <div class="relative mr-3 flex z-1 items-center gap-1">
+            <button z-button zType="default" zShape="circle" zTooltip="Close" type="button" class="w-4 h-4 p-0 bg-red-500" (click)="close()"></button>
+            <button z-button zType="default" zShape="circle" zTooltip="Hide" type="button" class="w-4 h-4 p-0 bg-yellow-500" (click)="minimize()"></button>
+            <button z-button zType="default" zShape="circle" zTooltip="Maximize" type="button" class="w-4 h-4 p-0 bg-green-500" (click)="maximize()"></button>
+        </div>
+        <p class="text-sm text-muted-foreground font-semibold select-none">{{ name }}</p>
+        <div
+                class="flex-1 h-full"
+                (pointerdown)="dragStart($event)"
+                (pointermove)="drag($event)"
+                (pointerup)="dragEnd($event)">
+        </div>
+    </div>
+    <div>
+        <div
+                class="absolute top-0 left-0 w-5 h-5 cursor-nw-resize"
+                (pointerdown)="resizeStart($event, 'nw')"
+                (pointermove)="resize($event)"
+                (pointerup)="resizeEnd($event)">
+        </div>
+        <div
+                class="absolute top-0 right-0 w-5 h-5 cursor-ne-resize"
+                (pointerdown)="resizeStart($event, 'ne')"
+                (pointermove)="resize($event)"
+                (pointerup)="resizeEnd($event)">
+        </div>
+        <div
+                class="absolute bottom-0 left-0 w-5 h-5 cursor-sw-resize"
+                (pointerdown)="resizeStart($event, 'sw')"
+                (pointermove)="resize($event)"
+                (pointerup)="resizeEnd($event)">
+        </div>
+        <div
+                class="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize"
+                (pointerdown)="resizeStart($event, 'se')"
+                (pointermove)="resize($event)"
+                (pointerup)="resizeEnd($event)">
+        </div>
+    </div>
+    <div class="flex-1 w-full bg-transparent overflow-auto">
+        <ng-container *ngComponentOutlet="windowInstance().app.component"/>
+    </div>
+</div>

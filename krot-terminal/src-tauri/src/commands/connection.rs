@@ -11,14 +11,16 @@ use std::sync::Arc;
 use tauri::State;
 use tokio::sync::{Mutex, MutexGuard};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct ServerAddress {
     pub ip: String,
     pub port: u16,
     pub secured: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct UserCredentials {
     pub username: String,
     pub password: String,
@@ -53,6 +55,13 @@ pub async fn set_server_address(
     keystore.credentials_keystore.store(CredentialsKeystore::IDX, &mut credentials).map_err(|e| CommandError::KeystoreAccessFailed(e))?;
     client.refresh_credentials().map_err(|e| CommandError::ClientCredentialsUpdateFailed(e))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_current_user(keystore: State<'_, Arc<ApplicationKeystore>>) -> Result<String, CommandError> {
+    let mut credentials = Credentials::default();
+    fetch_credentials(&keystore, &mut credentials)?;
+    Ok(std::str::from_utf8(&credentials.name).map_err(|_| CommandError::InternalError("Failed to parse credentials".to_string()))?.to_string())
 }
 
 #[tauri::command]

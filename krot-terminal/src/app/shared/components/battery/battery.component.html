@@ -1,0 +1,12 @@
+<div class="flex items-center gap-0.5">
+    <div [ngClass]="sizeClass()" class="relative border-2 border-muted-foreground rounded-md p-0.5 bg-background flex items-center">
+        <div [style.width.%]="validCharge()" [ngClass]="colorClass()" class="h-full rounded-[5px] transition-all duration-300 ease-in-out">
+        </div>
+        @if (charging()) {
+            <div class="absolute inset-0 flex justify-center items-center mix-blend-difference pointer-events-none">
+                <ng-icon name="lucideZap" color="#fff" size="13px" strokeWidth="3px"></ng-icon>
+            </div>
+        }
+    </div>
+    <div class="w-1 h-2 bg-muted-foreground rounded-r-sm"></div>
+</div>
