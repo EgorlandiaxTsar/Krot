@@ -1,6 +1,6 @@
 package com.egorgoncharov.krot.backend.security.transport;
 
-import com.egorgoncharov.krot.backend.application.Result;
+import com.egorgoncharov.krot.backend.Result;
 import com.egorgoncharov.krot.backend.config.yaml.HandshakeConfig;
 import com.egorgoncharov.krot.backend.config.yaml.STPConfig;
 import com.egorgoncharov.krot.backend.database.redis.repository.SessionRepository;

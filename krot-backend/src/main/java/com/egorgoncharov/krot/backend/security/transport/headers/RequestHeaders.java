@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class RequestHeaders extends XChaCha20Poly1305Headers {
+public class RequestHeaders extends ChaCha20Poly1305Headers {
     public static final String SESSION_REFERENCE_HEADER_NAME = "X-Session-Reference";
 
     private String sessionReference;

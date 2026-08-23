@@ -1,7 +1,7 @@
 package com.egorgoncharov.krot.backend.security.auth;
 
-import com.egorgoncharov.krot.backend.application.Result;
-import com.egorgoncharov.krot.backend.application.core.session.SessionDomain;
+import com.egorgoncharov.krot.backend.Result;
+import com.egorgoncharov.krot.backend.application.domain.SessionDomain;
 import com.egorgoncharov.krot.backend.config.yaml.SessionConfig;
 import com.egorgoncharov.krot.backend.database.redis.entity.SessionEntity;
 import com.egorgoncharov.krot.backend.database.redis.repository.SessionRepository;

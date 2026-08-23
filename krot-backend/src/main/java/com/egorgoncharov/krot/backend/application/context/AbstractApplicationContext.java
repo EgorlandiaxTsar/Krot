@@ -4,12 +4,12 @@ import com.egorgoncharov.krot.backend.database.relational.entity.UserEntity;
 import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
-public abstract class AbstractApplicationContext<T> implements AdditionalContext<T>, PrincipalContext {
+public abstract class AbstractApplicationContext<A> implements AdditionalContext<A>, PrincipalContext {
     private final UserEntity principal;
-    private final T additionalContext;
+    private final A additionalContext;
 
     @Override
-    public T additionalContext() {
+    public A additionalContext() {
         return additionalContext;
     }
 

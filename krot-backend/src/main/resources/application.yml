@@ -27,20 +27,44 @@ quarkus:
   http:
     auth:
       proactive: false
-#  log:
-#    level: INFO
-#    category:
-#      "io.quarkus":
-#        level: DEBUG
-#
-#      "org.jboss.resteasy.reactive":
-#        level: TRACE
-#
-#      "io.vertx":
-#        level: DEBUG
-#
-#      "io.smallrye":
-#        level: DEBUG
-#
-#      "com.egorgoncharov":
-#        level: TRACE
+  kafka-deserializer:
+    value:
+      jackson:
+        type: com.egorgoncharov.krot.backend.application.events.delivery.source.kafka.KafkaEvent
+kafka:
+  bootstrap:
+    servers:
+      - localhost:9092
+mp:
+  messaging:
+    connector:
+      smallrye-kafka:
+        key:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+          deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value:
+          serializer: io.quarkus.kafka.client.serialization.ObjectMapperSerializer
+          deserializer: com.egorgoncharov.krot.backend.application.events.delivery.source.kafka.KafkaEventDeserializer
+        auto.offset.reset: earliest
+    outgoing:
+      "krot.out.user":
+        topic: krot-user-events
+      "krot.out.session":
+        topic: krot-session-events
+      "krot.out.program":
+        topic: krot-program-events
+      "krot.out.role":
+        topic: krot-role-events
+      "krot.out.device":
+        topic: krot-device-events
+    incoming:
+      "krot.in.user":
+        topic: krot-user-events
+      "krot.in.session":
+        topic: krot-session-events
+      "krot.in.program":
+        topic: krot-program-events
+      "krot.in.role":
+        topic: krot-role-events
+      "krot.in.device":
+        topic: krot-device-events

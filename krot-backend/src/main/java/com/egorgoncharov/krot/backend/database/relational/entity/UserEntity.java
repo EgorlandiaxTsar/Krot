@@ -60,6 +60,11 @@ public class UserEntity implements Identifiable<UUID>, Nameable {
         return username;
     }
 
+    @Override
+    public void setName(String name) {
+        this.setUsername(name);
+    }
+
     public boolean hasAuthority(Authority authority) {
         return getRole().getAuthorities().contains(authority);
     }

@@ -8,7 +8,7 @@ import java.util.Base64;
 
 @AllArgsConstructor
 @NoArgsConstructor
-public class HandshakeHeaders extends XChaCha20Poly1305Headers {
+public class HandshakeHeaders extends ChaCha20Poly1305Headers {
     public static final String CLIENT_PUBKEY_HEADER_NAME = "X-Key";
 
     private String clientPubkey;

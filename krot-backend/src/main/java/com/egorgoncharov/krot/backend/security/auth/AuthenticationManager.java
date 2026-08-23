@@ -1,6 +1,6 @@
 package com.egorgoncharov.krot.backend.security.auth;
 
-import com.egorgoncharov.krot.backend.application.Result;
+import com.egorgoncharov.krot.backend.Result;
 import com.egorgoncharov.krot.backend.database.redis.entity.SessionEntity;
 import io.smallrye.mutiny.Uni;
 

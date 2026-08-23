@@ -1,6 +1,6 @@
 package com.egorgoncharov.krot.backend.security.transport;
 
-import com.egorgoncharov.krot.backend.application.Result;
+import com.egorgoncharov.krot.backend.Result;
 import com.egorgoncharov.krot.backend.security.transport.headers.HandshakeHeaders;
 import com.egorgoncharov.krot.backend.security.transport.headers.RequestHeaders;
 import com.egorgoncharov.krot.backend.security.transport.response.EncryptedResponse;

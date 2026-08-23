@@ -1,6 +1,6 @@
 package com.egorgoncharov.krot.backend.application.domain;
 
-import com.egorgoncharov.krot.backend.application.Result;
+import com.egorgoncharov.krot.backend.Result;
 import com.egorgoncharov.krot.backend.application.query.AbstractApplicationQuery;
 import com.egorgoncharov.krot.backend.application.query.pagination.Page;
 import com.egorgoncharov.krot.backend.database.Identifiable;
