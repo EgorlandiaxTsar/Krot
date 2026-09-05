@@ -1,8 +1,6 @@
-use crate::client::types::serde_helpers::{deserialize, serialize};
+use crate::client::types::serde::{deserialize, serialize};
+use crate::client::utils;
 use serde::{Deserialize, Serialize};
-
-pub const METADATA_SIZE: usize = size_of::<ResponseMetadata>();
-pub const AUTHENTICATION_CREDENTIALS_SIZE: usize = size_of::<AuthenticationCredentials>();
 
 #[repr(C)]
 #[derive(Default, Debug, Copy, Clone, Deserialize)]
@@ -14,11 +12,28 @@ pub struct ResponseMetadata {
 }
 
 #[repr(C)]
-#[derive(Default, Debug, Copy, Clone, Serialize)]
+#[derive(Debug, Copy, Clone, Serialize)]
 pub struct RequestMetadata {
     #[serde(rename = "sessionId", serialize_with = "serialize::uuid")]
     pub session_id: [u8; 16],
     pub timestamp: i64,
+}
+
+impl RequestMetadata {
+    pub fn new(session_id: [u8; 16]) -> Self {
+        let mut metadata = Self::default();
+        metadata.session_id = session_id;
+        metadata
+    }
+}
+
+impl Default for RequestMetadata {
+    fn default() -> Self {
+        Self {
+            session_id: [0u8; 16],
+            timestamp: utils::timestamp().unwrap_or(0),
+        }
+    }
 }
 
 #[repr(C)]

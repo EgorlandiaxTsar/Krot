@@ -1,6 +1,6 @@
-use crate::client::client::KrotClient;
-use crate::client::confidential::Credentials;
+use crate::client::client_deprecated::KrotClient;
 use crate::client::error::ClientError;
+use crate::client::secret::credentials::Credentials;
 use crate::commands::error::CommandError;
 use crate::security::error::SecurityError;
 use crate::security::keystore::{ApplicationKeystore, CredentialsKeystore, Keystore};

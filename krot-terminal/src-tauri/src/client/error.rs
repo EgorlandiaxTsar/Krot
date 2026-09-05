@@ -30,4 +30,10 @@ pub enum ClientError {
     NetworkError,
     TimestampError,
     BufferTooSmall,
+
+    WsHandshakeFailed,
+    WsConnectionFailed,
+    WsProtocolViolation,
+    WsNotConnected,
+    WsSendFailed,
 }

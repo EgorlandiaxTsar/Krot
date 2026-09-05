@@ -1,12 +1,13 @@
-use crate::client::confidential::{Credentials, Session, CREDENTIALS_SIZE, SESSION_SIZE};
+use crate::client::secret::credentials::{Credentials, CREDENTIALS_SIZE};
+use crate::client::secret::session::{Session, SESSION_SIZE};
 use crate::client::types::converters::{b64_to_bytes, bytes_to_b64};
 use crate::security::error::SecurityError;
 use crate::U8_STRINGS;
 use keyring::{Entry, Error};
 
 const KEYSTORE_NAME: &str = "KrotTerminalKeystore";
-const SESSION_B64_SIZE: usize = 4 * ((SESSION_SIZE + 2) / 3);
-const CREDENTIALS_B64_SIZE: usize = 4 * ((CREDENTIALS_SIZE + 2) / 3);
+const SESSION_B64_SIZE: usize = 4 * SESSION_SIZE.div_ceil(3);
+const CREDENTIALS_B64_SIZE: usize = 4 * CREDENTIALS_SIZE.div_ceil(3);
 
 pub trait FromByteKeypair {
     fn from_byte_keypair(key: &u8, idx: &u8) -> Result<Entry, Error>;
@@ -133,7 +134,7 @@ impl Keystore<Credentials> for CredentialsKeystore {
     fn read(&self, idx: u8, out: &mut Credentials) -> Result<(), SecurityError> {
         let mut buf = [0u8; CREDENTIALS_SIZE];
         self.bytes_keystore.read_b64::<CREDENTIALS_B64_SIZE>(idx, &mut buf)?;
-        *out = unsafe { std::mem::transmute(buf) };
+        *out = unsafe { std::mem::transmute::<[u8; 264], Credentials>(buf) };
         Ok(())
     }
 }

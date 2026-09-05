@@ -22,6 +22,7 @@ pub trait Decryptor {
     ) -> Result<(), CryptoError>;
 }
 
+#[derive(Clone)]
 pub struct ChaCha20Poly1305Cipher;
 
 impl Encryptor for ChaCha20Poly1305Cipher {

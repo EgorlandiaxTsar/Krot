@@ -39,3 +39,15 @@ pub fn b64_to_bytes(src: &[u8], out: &mut [u8]) -> Result<usize, ClientError> {
         .map_err(|_| ConversionFailed)?;
     Ok(len)
 }
+
+pub fn body_to_bytes<T: serde::Serialize>(data: &T, out: &mut [u8]) -> Result<usize, ClientError> {
+    let out_buf_len = out.len();
+    let mut cur = &mut out[..];
+    serde_json::to_writer(&mut cur, data).map_err(|_| ClientError::BodyCompositionFailed)?;
+    Ok(out_buf_len - cur.len())
+}
+
+pub fn bytes_to_body<T: serde::de::DeserializeOwned>(data: &[u8], out: &mut T) -> Result<(), ClientError> {
+    *out = serde_json::from_slice::<T>(data).map_err(|_| ClientError::BodyParseFailed)?;
+    Ok(())
+}
