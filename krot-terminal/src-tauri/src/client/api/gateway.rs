@@ -1,6 +1,5 @@
-use crate::client::api::model::common::{AuthenticationCredentials, RequestMetadata};
-use crate::client::api::model::request::{ApiAuthenticationRequest, DisconnectRequest};
-use crate::client::api::model::response::AuthenticationResponse;
+use crate::client::api::model::auth::{ApiAuthenticationRequest, AuthenticationCredentials, AuthenticationResponse, DisconnectRequest};
+use crate::client::api::model::common::RequestMetadata;
 use crate::client::client::{KeyBuffer, NonceBuffer, PathBuffer, SessionRefBuffer, TagBuffer, KEY_BUFFER_B64_LEN, KEY_BUFFER_LEN, NONCE_BUFFER_B64_LEN, NONCE_BUFFER_LEN, PATH_BUFFER_LEN, TAG_BUFFER_B64_LEN, TAG_BUFFER_LEN};
 use crate::client::error::ClientError;
 use crate::client::secret::credentials::CredentialsHolder;

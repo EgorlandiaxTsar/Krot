@@ -1,5 +1,5 @@
 use crate::client::api::gateway::ApiGateway;
-use crate::client::api::model::common::AuthenticationCredentials;
+use crate::client::api::model::auth::AuthenticationCredentials;
 use crate::client::error::ClientError;
 use crate::client::secret::credentials::CredentialsHolder;
 use crate::client::secret::session::{Session, SessionHolder};

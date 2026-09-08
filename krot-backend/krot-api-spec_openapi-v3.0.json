@@ -1,0 +1,3953 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Default module",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Common"
+    },
+    {
+      "name": "Security"
+    },
+    {
+      "name": "Role"
+    },
+    {
+      "name": "User"
+    },
+    {
+      "name": "Device"
+    },
+    {
+      "name": "Program"
+    },
+    {
+      "name": "Session"
+    }
+  ],
+  "paths": {
+    "/hello": {
+      "get": {
+        "summary": "Hello",
+        "deprecated": false,
+        "description": "Returns a \"Hello!\" string, is used to check whether the server is alive and operational or not",
+        "operationId": "hello",
+        "tags": [
+          "Common"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": "Hello!"
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/pubkey": {
+      "get": {
+        "summary": "Pubkey",
+        "deprecated": false,
+        "description": "Returns the server's public encryption key in base64 format needed for building HKDF keypairs during authentication",
+        "operationId": "pubkey",
+        "tags": [
+          "Common"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": "zSkMxt/GpIKAp4jsbOO3ZnSKrafMbkVXCc1CdlrvLPA="
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/auth/handshake": {
+      "post": {
+        "summary": "AuthenticationHandshake",
+        "deprecated": false,
+        "description": "Creates session, returns internal encryption key and session metadata",
+        "operationId": "authHandshake",
+        "tags": [
+          "Security"
+        ],
+        "parameters": [
+          {
+            "name": "X-Key",
+            "in": "header",
+            "description": "Generated user's temporary public key",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=44)}}",
+            "schema": {
+              "type": "string",
+              "minLength": 24
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 24 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticationHandshakeCredentials"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AuthenticationCredentials"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string",
+                  "minLength": 24
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string",
+                  "minLength": 24
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/UnauthenticatedFailure",
+            "description": "This error is returned if request lacks authentication headers"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/auth/disconnect": {
+      "post": {
+        "summary": "SystemDisconnect",
+        "deprecated": false,
+        "description": "Deletes current session and disconnects from the system",
+        "operationId": "authDisconnect",
+        "tags": [
+          "Security"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "metadata": {
+                    "$ref": "#/components/schemas/RequestMetadata"
+                  }
+                },
+                "required": [
+                  "metadata"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/role": {
+      "post": {
+        "summary": "GetRole",
+        "deprecated": false,
+        "description": "Returns a paginated roles list based on the provided filters",
+        "operationId": "getRole",
+        "tags": [
+          "Role"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "metadata": {
+                    "$ref": "#/components/schemas/RequestMetadata"
+                  },
+                  "ids": {
+                    "description": "List of IDs to lookup",
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/IDs"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "authorities": {
+                    "description": "List of authorities of which at least one must be present in a role",
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/Authorities"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "nameQuery": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Name field search term"
+                  },
+                  "grade": {
+                    "description": "Grade range",
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RangeFilter",
+                        "description": "Grade range"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pagination": {
+                    "$ref": "#/components/schemas/PaginationOptions"
+                  }
+                },
+                "required": [
+                  "metadata",
+                  "pagination"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RoleModel"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data",
+                    "pagination"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/role/manage": {
+      "post": {
+        "summary": "CreateRole",
+        "deprecated": false,
+        "description": "Creates new role",
+        "operationId": "createRole",
+        "tags": [
+          "Role"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleCreate"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      },
+      "patch": {
+        "summary": "EditRole",
+        "deprecated": false,
+        "description": "Edits an existing role",
+        "operationId": "editRole",
+        "tags": [
+          "Role"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleEdit"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/role/delete": {
+      "post": {
+        "summary": "DeleteRole",
+        "deprecated": false,
+        "description": "Deletes specified roles",
+        "operationId": "deleteRole",
+        "tags": [
+          "Role"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleDelete"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/user": {
+      "post": {
+        "summary": "GetUser",
+        "deprecated": false,
+        "description": "Returns a paginated users list based on the provided filters",
+        "operationId": "getUser",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserFilter"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserModel"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data",
+                    "pagination"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/user/manage": {
+      "post": {
+        "summary": "CreateUser",
+        "deprecated": false,
+        "description": "Creates new user",
+        "operationId": "createUser",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request Poly1305 nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      },
+      "patch": {
+        "summary": "EditUser",
+        "deprecated": false,
+        "description": "Edits an existing user",
+        "operationId": "editUser",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserEdit"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "type": "null"
+                    },
+                    "pagination": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data",
+                    "pagination"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/user/manage/password": {
+      "patch": {
+        "summary": "EditUserPassword",
+        "deprecated": false,
+        "description": "Edits user password",
+        "operationId": "editUserPassword",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserEditPassword"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/user/delete": {
+      "post": {
+        "summary": "DeleteUser",
+        "deprecated": false,
+        "description": "Deletes specified users",
+        "operationId": "deleteUser",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDelete"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/device": {
+      "post": {
+        "summary": "GetDevice",
+        "deprecated": false,
+        "description": "Returns a paginated devices list based on provided filters",
+        "operationId": "getDevice",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceFilter"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DeviceModel"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data",
+                    "pagination"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/device/manage": {
+      "post": {
+        "summary": "CreateDevice",
+        "deprecated": false,
+        "description": "Creates new device",
+        "operationId": "createDevice",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceCreate"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      },
+      "patch": {
+        "summary": "EditDevice",
+        "deprecated": false,
+        "description": "Edits an existing device",
+        "operationId": "editDevice",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceEdit"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/device/delete": {
+      "post": {
+        "summary": "DeleteDevice",
+        "deprecated": false,
+        "description": "Deletes specified devices",
+        "operationId": "deleteDevice",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceDelete"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/device/manage/collaborator/upsert": {
+      "patch": {
+        "summary": "UpsertDeviceCollaborator",
+        "deprecated": false,
+        "description": "Adds or edits a device collaborator",
+        "operationId": "upsertDeviceCollaborator",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpsertCollaborator"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/device/manage/collaborator/delete": {
+      "post": {
+        "summary": "DeleteDeviceCollaborator",
+        "deprecated": false,
+        "description": "Deletes device collaborator",
+        "operationId": "deleteDeviceCollaborator",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceDeleteCollaborator"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/device/transfer": {
+      "post": {
+        "summary": "TransferDevice",
+        "deprecated": false,
+        "description": "Transfers device ownership to another user",
+        "operationId": "transferDevice",
+        "tags": [
+          "Device"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceTransferOwnership"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/program": {
+      "post": {
+        "summary": "GetProgram",
+        "deprecated": false,
+        "description": "Returns a paginated programs list based on provided filters",
+        "operationId": "getProgram",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramFilter"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProgramModel"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data",
+                    "pagination"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/program/manage": {
+      "post": {
+        "summary": "CreateProgram",
+        "deprecated": false,
+        "description": "Creates new program",
+        "operationId": "createProgram",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramCreate"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      },
+      "patch": {
+        "summary": "EditProgram",
+        "deprecated": false,
+        "description": "Edits an existing program",
+        "operationId": "editProgram",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramEdit"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/program/delete": {
+      "post": {
+        "summary": "DeleteProgram",
+        "deprecated": false,
+        "description": "Deletes specified programs",
+        "operationId": "deleteProgram",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramDelete"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/program/manage/collaborator/upsert": {
+      "patch": {
+        "summary": "UpsertProgramCollaborator",
+        "deprecated": false,
+        "description": "Adds or edits a program collaborator",
+        "operationId": "upsertProgramCollaborator",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramUpsertCollaborator"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/program/manage/collaborator/delete": {
+      "post": {
+        "summary": "DeleteProgramCollaborator",
+        "deprecated": false,
+        "description": "Deletes program collaborator",
+        "operationId": "deleteProgramCollaborator",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramDeleteCollaborator"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/": {
+      "post": {
+        "summary": "TransferProgram",
+        "deprecated": false,
+        "description": "Transfers program ownership to another user",
+        "operationId": "transferProgram",
+        "tags": [
+          "Program"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramTransferOwnership"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlankResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/session": {
+      "post": {
+        "summary": "GetSession",
+        "deprecated": false,
+        "description": "Returns a paginated sessions list based on the provided filters",
+        "operationId": "getSession",
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "X-Session-Reference",
+            "in": "header",
+            "description": "Session Reference Key",
+            "required": true,
+            "example": "{{$string.uuid}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Tag",
+            "in": "header",
+            "description": "Request 16 byte Poly1305 tag",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=24)}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-Nonce",
+            "in": "header",
+            "description": "Request 12 byte nonce",
+            "required": true,
+            "example": "{{$string.alphanumeric(length=16)}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionFilter"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "$ref": "#/components/schemas/ResponseMetadata"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SessionModel"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "metadata",
+                    "data",
+                    "pagination"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Response-Tag": {
+                "example": "{{$string.alphanumeric(length=24)}}",
+                "required": true,
+                "description": "Response 16 byte Poly1305 tag",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Response-Nonce": {
+                "example": "{{$string.alphanumeric(length=16)}}",
+                "required": true,
+                "description": "Response 12 byte nonce",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Failure",
+            "description": "Standard error model for API calls"
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "webhooks": {},
+  "components": {
+    "schemas": {
+      "AuthenticationHandshakeCredentials": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "description": "If target is \"USER\", this field is username, otherwise it is a device ID"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 32
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "Request timestamp",
+            "format": "ulong"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "DEVICE",
+              "USER"
+            ],
+            "description": "System login target"
+          }
+        },
+        "required": [
+          "password",
+          "timestamp",
+          "identifier",
+          "target"
+        ]
+      },
+      "AuthenticationCredentials": {
+        "type": "object",
+        "properties": {
+          "sessionReference": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Session reference key"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Raw session ID"
+          },
+          "key": {
+            "type": "string",
+            "description": "Internal encryption key"
+          },
+          "expirationTimestamp": {
+            "type": "integer",
+            "format": "ulong",
+            "description": "Expiration timestamp"
+          }
+        },
+        "required": [
+          "sessionReference",
+          "sessionId",
+          "key",
+          "expirationTimestamp"
+        ]
+      },
+      "UserModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "User's assigned role ID",
+            "format": "uuid"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Is user acive"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "ulong",
+            "description": "User creation timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "roleId",
+          "active",
+          "createdAt"
+        ]
+      },
+      "UserFilter": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "description": "List of IDs to lookup",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IDs",
+                "description": "List of IDs to lookup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "User status"
+          },
+          "creationTime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Creation time range"
+          },
+          "roleId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Assigned role ID"
+          },
+          "usernameQuery": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Username field search term"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationOptions"
+          }
+        },
+        "required": [
+          "metadata",
+          "pagination"
+        ]
+      },
+      "UserCreate": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 32
+          },
+          "roleId": {
+            "type": "string",
+            "description": "User role ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "username",
+          "roleId",
+          "password",
+          "metadata"
+        ]
+      },
+      "UserEdit": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target user ID"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "User role ID",
+            "format": "uuid"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "User status"
+          }
+        },
+        "required": [
+          "id",
+          "metadata"
+        ]
+      },
+      "UserDelete": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "$ref": "#/components/schemas/IDs",
+            "description": "List of users to delete"
+          }
+        },
+        "required": [
+          "metadata",
+          "ids"
+        ]
+      },
+      "UserEditPassword": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target user ID"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 32,
+            "description": "Current password"
+          },
+          "newPassword": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 32,
+            "description": "New password"
+          }
+        },
+        "required": [
+          "metadata",
+          "id",
+          "password",
+          "newPassword"
+        ]
+      },
+      "RoleModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Role ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Role name"
+          },
+          "grade": {
+            "type": "integer",
+            "description": "Role grade"
+          },
+          "authorities": {
+            "description": "Role permissions",
+            "$ref": "#/components/schemas/Authorities"
+          },
+          "users": {
+            "description": "Users with this role assigned",
+            "$ref": "#/components/schemas/IDs"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "grade",
+          "authorities",
+          "users"
+        ]
+      },
+      "RoleFilter": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "description": "List of IDs to lookup",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IDs"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "authorities": {
+            "description": "List of authorities of which at least one must be present in a role",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Authorities"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nameQuery": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Name field search term"
+          },
+          "grade": {
+            "description": "Grade range",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter",
+                "description": "Grade range"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationOptions"
+          }
+        },
+        "required": [
+          "metadata",
+          "pagination"
+        ]
+      },
+      "RoleCreate": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "name": {
+            "type": "string",
+            "description": "Role name"
+          },
+          "grade": {
+            "type": "integer",
+            "description": "Role grade",
+            "format": "int32",
+            "minimum": 0
+          },
+          "authorities": {
+            "$ref": "#/components/schemas/Authorities",
+            "description": "Role permissions"
+          }
+        },
+        "required": [
+          "metadata",
+          "name",
+          "grade",
+          "authorities"
+        ]
+      },
+      "RoleEdit": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target role ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Role name"
+          },
+          "grade": {
+            "type": "integer",
+            "description": "Role grade",
+            "format": "int32",
+            "minimum": 0
+          },
+          "authorities": {
+            "$ref": "#/components/schemas/Authorities",
+            "description": "Role permissions"
+          }
+        },
+        "required": [
+          "metadata",
+          "id"
+        ]
+      },
+      "RoleDelete": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "$ref": "#/components/schemas/IDs",
+            "description": "List of roles to delete"
+          }
+        },
+        "required": [
+          "metadata",
+          "ids"
+        ]
+      },
+      "IDs": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "description": "Entity ID"
+        },
+        "description": "List of IDs"
+      },
+      "Authorities": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "DEVICE",
+            "X_ROLE_READ",
+            "X_USER_READ",
+            "X_DEVICE_READ",
+            "X_REQUEST_READ",
+            "X_SCRIPT_READ",
+            "X_SESSION_READ",
+            "X_ROLE_UPSERT",
+            "X_USER_UPSERT",
+            "X_ROLE_DELETE",
+            "X_USER_DELETE",
+            "X_SESSION_DELETE",
+            "X_DEVICE_TRANSFER_OWNERSHIP",
+            "X_SCRIPT_TRANSFER_OWNERSHIP",
+            "SELF_READ",
+            "SELF_UPSERT",
+            "SELF_UPSERT_PASSWORD",
+            "SELF_DELETE",
+            "SELF_SESSION_DELETE",
+            "SELF_DEVICE_TRANSFER_OWNERSHIP",
+            "SELF_SCRIPT_TRANSFER_OWNERSHIP",
+            "X_AUTHORITY_MANAGE",
+            "ROLE_READ",
+            "USER_READ",
+            "DEVICE_READ",
+            "REQUEST_READ",
+            "SCRIPT_READ",
+            "SESSION_READ",
+            "ROLE_UPSERT",
+            "USER_UPSERT",
+            "DEVICE_UPSERT",
+            "REQUEST_UPSERT",
+            "SCRIPT_UPSERT",
+            "ROLE_DELETE",
+            "USER_DELETE",
+            "DEVICE_DELETE",
+            "REQUEST_DELETE",
+            "SCRIPT_DELETE",
+            "SESSION_DELETE",
+            "DEVICE_TRANSFER_OWNERSHIP",
+            "SCRIPT_TRANSFER_OWNERSHIP"
+          ],
+          "description": "Permission"
+        },
+        "description": "List of permissions"
+      },
+      "RequestMetadata": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Raw session ID (not reference key!)"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "ulong",
+            "description": "Request timestamp, must not be lower or equal than previous request timestamp"
+          }
+        },
+        "required": [
+          "timestamp",
+          "sessionId"
+        ]
+      },
+      "ResponseMetadata": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Tells the client wether the request was successful or not"
+          },
+          "code": {
+            "type": "integer",
+            "description": "Internal status code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Status or error message"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "Response timestamp"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "message",
+          "timestamp"
+        ]
+      },
+      "BlankResponse": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ResponseMetadata"
+          },
+          "data": {
+            "type": "null"
+          },
+          "pagination": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "metadata",
+          "data",
+          "pagination"
+        ]
+      },
+      "RangeFilter": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "integer",
+            "format": "long",
+            "description": "Minimum value inclusive"
+          },
+          "max": {
+            "type": "integer",
+            "format": "long",
+            "description": "Maximum value inclusive"
+          }
+        }
+      },
+      "PaginationOptions": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "description": "Page number"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 500,
+            "description": "Max items per page"
+          },
+          "order": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Ordering column, insert '-' at the beginning to make a descending sort"
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "order"
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Max items per page"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Actual items in page"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total pages count"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page"
+          },
+          "from": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Page start index"
+          },
+          "to": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Page end index"
+          },
+          "start": {
+            "type": "boolean",
+            "description": "Reached start"
+          },
+          "end": {
+            "type": "boolean",
+            "description": "Reached end"
+          }
+        },
+        "required": [
+          "limit",
+          "items",
+          "pages",
+          "page",
+          "from",
+          "to",
+          "start",
+          "end"
+        ]
+      },
+      "DeviceModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Device ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Device name"
+          },
+          "address": {
+            "type": "string",
+            "description": "Device IP-address"
+          },
+          "password": {
+            "type": "string",
+            "description": "Device password"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Device owner ID"
+          },
+          "lastCalled": {
+            "type": "integer",
+            "description": "Last access timestamp"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Device creation timestamp"
+          },
+          "collaborators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceCollaboratorModel"
+            },
+            "description": "Device collaborators"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "password",
+          "ownerId",
+          "lastCalled",
+          "createdAt",
+          "collaborators"
+        ]
+      },
+      "DeviceFilter": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "description": "List of IDs to lookup",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IDs",
+                "description": "List of IDs to lookup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Device owner ID"
+          },
+          "lastUpdatedTime": {
+            "description": "Last access time range",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter",
+                "description": "Last access time range"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creationTime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Creation time range"
+          },
+          "nameQuery": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Name field search term"
+          },
+          "addressQuery": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IP-address field search term"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationOptions"
+          }
+        },
+        "required": [
+          "metadata",
+          "pagination"
+        ]
+      },
+      "DeviceCreate": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "name",
+          "password",
+          "metadata"
+        ]
+      },
+      "DeviceUpsertCollaborator": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Device ID"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Collaborator user ID"
+          },
+          "canReadAddress": {
+            "type": "boolean",
+            "description": "Allow IP-address read"
+          },
+          "canReadPassword": {
+            "type": "boolean",
+            "description": "Allow password read"
+          },
+          "canReadLastUpdate": {
+            "type": "boolean",
+            "description": "Allow last access time read"
+          },
+          "canUpdateName": {
+            "type": "boolean",
+            "description": "Allow name edit"
+          },
+          "canUpdatePassword": {
+            "type": "boolean",
+            "description": "Allow password edit"
+          },
+          "allowPrograms": {
+            "$ref": "#/components/schemas/IDs",
+            "description": "List of scripts that collaborator is allowed to run"
+          }
+        },
+        "required": [
+          "metadata",
+          "deviceId",
+          "userId"
+        ]
+      },
+      "DeviceDeleteCollaborator": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "description": "Collaborator ID",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "Device ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "metadata",
+          "id",
+          "deviceId"
+        ]
+      },
+      "DeviceEdit": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target device ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "id",
+          "metadata"
+        ]
+      },
+      "DeviceDelete": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "$ref": "#/components/schemas/IDs",
+            "description": "List of devices to delete"
+          }
+        },
+        "required": [
+          "metadata",
+          "ids"
+        ]
+      },
+      "DeviceTransferOwnership": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "description": "Device ID",
+            "format": "uuid"
+          },
+          "newOwnerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "New owner ID"
+          }
+        },
+        "required": [
+          "metadata",
+          "id",
+          "newOwnerId"
+        ]
+      },
+      "DeviceCollaboratorModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Collaborator ID",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Collaborator user ID"
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "Device ID",
+            "format": "uuid"
+          },
+          "canReadAddress": {
+            "type": "boolean",
+            "description": "Allow IP-address read"
+          },
+          "canReadPassword": {
+            "type": "boolean",
+            "description": "Allow password read"
+          },
+          "canReadLastUpdate": {
+            "type": "boolean",
+            "description": "Allow last access time read"
+          },
+          "canUpdateName": {
+            "type": "boolean",
+            "description": "Allow name edit"
+          },
+          "canUpdatePassword": {
+            "type": "boolean",
+            "description": "Allow password edit"
+          },
+          "allowPrograms": {
+            "$ref": "#/components/schemas/IDs",
+            "description": "List of scripts that collaborator is allowed to run"
+          }
+        },
+        "required": [
+          "deviceId",
+          "id",
+          "userId",
+          "canReadAddress",
+          "canReadPassword",
+          "canReadLastUpdate",
+          "canUpdateName",
+          "canUpdatePassword",
+          "allowPrograms"
+        ]
+      },
+      "ProgramModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Program ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Program owner ID",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "ulong",
+            "description": "User creation timestamp"
+          },
+          "collaborators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgramCollaboratorModel"
+            },
+            "description": "Program collaborators"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ownerId",
+          "createdAt",
+          "collaborators"
+        ]
+      },
+      "ProgramFilter": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "description": "List of IDs to lookup",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IDs",
+                "description": "List of IDs to lookup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creationTime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Creation time range"
+          },
+          "ownerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Program owner ID"
+          },
+          "nameQuery": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Name field search term"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationOptions"
+          }
+        },
+        "required": [
+          "metadata",
+          "pagination"
+        ]
+      },
+      "ProgramCreate": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name"
+          }
+        },
+        "required": [
+          "name",
+          "metadata"
+        ]
+      },
+      "ProgramUpsertCollaborator": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "programId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Program ID"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Collaborator user ID"
+          },
+          "canUpdateName": {
+            "type": "boolean",
+            "description": "Allow name edit"
+          },
+          "canUpdateCode": {
+            "type": "boolean",
+            "description": "Allow code updates"
+          }
+        },
+        "required": [
+          "metadata",
+          "programId",
+          "userId"
+        ]
+      },
+      "ProgramDeleteCollaborator": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "description": "Collaborator ID",
+            "format": "uuid"
+          },
+          "programId": {
+            "type": "string",
+            "description": "Program ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "metadata",
+          "id",
+          "programId"
+        ]
+      },
+      "ProgramEdit": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target program ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name"
+          }
+        },
+        "required": [
+          "id",
+          "metadata",
+          "name"
+        ]
+      },
+      "ProgramTransferOwnership": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "id": {
+            "type": "string",
+            "description": "Program ID",
+            "format": "uuid"
+          },
+          "newOwnerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "New owner ID"
+          }
+        },
+        "required": [
+          "metadata",
+          "id",
+          "newOwnerId"
+        ]
+      },
+      "ProgramDelete": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "$ref": "#/components/schemas/IDs",
+            "description": "List of programs to delete"
+          }
+        },
+        "required": [
+          "metadata",
+          "ids"
+        ]
+      },
+      "ProgramCollaboratorModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Collaborator ID",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Collaborator user ID"
+          },
+          "programId": {
+            "type": "string",
+            "description": "Program ID",
+            "format": "uuid"
+          },
+          "canUpdateName": {
+            "type": "boolean",
+            "description": "Allow name edit"
+          },
+          "canUpdateCode": {
+            "type": "boolean",
+            "description": "Allow code updates"
+          }
+        },
+        "required": [
+          "programId",
+          "id",
+          "userId",
+          "canUpdateName",
+          "canUpdateCode"
+        ]
+      },
+      "SessionModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Owner ID",
+            "format": "uuid"
+          },
+          "isOwnerDevice": {
+            "type": "boolean",
+            "description": "Is owner a device entity"
+          },
+          "validUntil": {
+            "type": "integer",
+            "format": "ulong",
+            "description": "Session expiration timestamp"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "ulong",
+            "description": "Session creation timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "isOwnerDevice",
+          "createdAt",
+          "validUntil"
+        ]
+      },
+      "SessionFilter": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/RequestMetadata"
+          },
+          "ids": {
+            "description": "List of IDs to lookup",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IDs",
+                "description": "List of IDs to lookup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Owner ID"
+          },
+          "validUntilTime": {
+            "$ref": "#/components/schemas/RangeFilter",
+            "description": "Expiration time range"
+          },
+          "creationTime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Creation time range"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationOptions"
+          }
+        },
+        "required": [
+          "metadata",
+          "pagination",
+          "validUntilTime"
+        ]
+      }
+    },
+    "responses": {
+      "UnauthenticatedFailure": {
+        "description": "This error is returned if request lacks authentication headers",
+        "content": {}
+      },
+      "Failure": {
+        "description": "Standard error model for API calls",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "metadata": {
+                  "$ref": "#/components/schemas/ResponseMetadata"
+                },
+                "data": {
+                  "type": "null",
+                  "description": "No data due to failure"
+                }
+              },
+              "required": [
+                "metadata",
+                "data"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}

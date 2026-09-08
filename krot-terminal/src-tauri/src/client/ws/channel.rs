@@ -1,5 +1,5 @@
+use crate::client::api::model::auth::WsAuthenticationRequest;
 use crate::client::api::model::common::RequestMetadata;
-use crate::client::api::model::request::WsAuthenticationRequest;
 use crate::client::client::{KeyBuffer, NonceBuffer, TagBuffer, NONCE_BUFFER_LEN, PATH_BUFFER_LEN, SESSION_REF_BUFFER_LEN, TAG_BUFFER_LEN};
 use crate::client::error::ClientError;
 use crate::client::secret::credentials::{Credentials, CredentialsHolder};

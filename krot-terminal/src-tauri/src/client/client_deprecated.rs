@@ -1,6 +1,5 @@
-use crate::client::api::model::common::{AuthenticationCredentials, RequestMetadata};
-use crate::client::api::model::request::{ApiAuthenticationRequest, DisconnectRequest};
-use crate::client::api::model::response::AuthenticationResponse;
+use crate::client::api::model::auth::{ApiAuthenticationRequest, AuthenticationCredentials, AuthenticationResponse, DisconnectRequest};
+use crate::client::api::model::common::RequestMetadata;
 use crate::client::error::ClientError;
 use crate::client::secret::credentials::Credentials;
 use crate::client::secret::session::Session;

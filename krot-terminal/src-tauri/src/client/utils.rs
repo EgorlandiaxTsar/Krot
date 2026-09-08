@@ -3,6 +3,40 @@ use crate::client::error::ClientError;
 use std::io::Write;
 use std::time;
 
+macro_rules! endpoint {
+    ($name:ident, GET, $path:expr, $red:ty) => {
+        pub async fn $name(&self, out: &mut $res) -> Result<(), ClientError> {
+            self.req::<(), $res, 0, { $res as JsonSized }::JSON_SIZE>(
+                RequestType::Get,
+                &new_url($path),
+                None,
+                true,
+                true,
+                out,
+            ).await
+        }
+    };
+
+    ($name:ident, $method:ident, $path:expr, $req:ty, $res:ty) => {
+        pub async fn $name(&self, body: &$req, out &mut $res) -> Result<(), ClientError> {
+            self.req::<$req, $res, { <$req as JsonSized>::JSON_SIZE }, { <$res as JsonSized>::JSON_SIZE } >(
+                endpoint!(@method_variant $method),
+                &new_url($path),
+                Some(body),
+                true,
+                true,
+                out,
+            ).await
+        }
+    };
+
+    (@method_variant POST) => { RequestType::Post };
+    (@method_variant PUT) => { RequestType::Put };
+    (@method_variant PATCH) => { RequestType::Patch };
+}
+
+pub(crate) use endpoint;
+
 pub fn timestamp() -> Result<i64, ClientError> {
     Ok(time::SystemTime::now()
         .duration_since(time::UNIX_EPOCH)
