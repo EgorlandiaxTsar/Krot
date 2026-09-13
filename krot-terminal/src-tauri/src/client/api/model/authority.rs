@@ -35,7 +35,7 @@ authority_enum!(
 pub const AUTHORITY_COUNT: usize = Authority::ALL.len();
 
 #[repr(transparent)]
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Default, Debug, Copy, Clone)]
 pub struct Authorities(u64);
 
 impl Authorities {

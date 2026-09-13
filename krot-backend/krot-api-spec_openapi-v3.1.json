@@ -3893,7 +3893,14 @@
             "description": "Owner ID"
           },
           "validUntilTime": {
-            "$ref": "#/components/schemas/RangeFilter",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "Expiration time range"
           },
           "creationTime": {

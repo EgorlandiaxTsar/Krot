@@ -1,71 +1,66 @@
 use crate::client::api::model::size::{bool_cost, i32_cost, i64_cost, uuid_cost, varchar_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils;
-use serde::{Deserialize, Serialize};
+use crate::client::utils::{new_model, req_model, res_model};
+use serde::Deserialize;
 
 pub type IdList = Vec<[u8; 16]>;
 
 // Models
-#[repr(C)]
-#[derive(Debug, Copy, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RequestMetadata {
-    #[serde(rename = "sessionId", serialize_with = "serialize::uuid")]
-    pub session_id: [u8; 16],
-    pub timestamp: i64,
+req_model! {
+    pub struct RequestMetadata {
+        #[serde(rename = "sessionId", serialize_with = "serialize::uuid")]
+        pub session_id: [u8; 16],
+        pub timestamp: i64,
+    }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResponseMetadata {
-    pub code: u16,
-    #[serde(rename = "message", deserialize_with = "deserialize::varchar")]
-    pub message: [u8; 2048],
-    pub timestamp: i64,
-    pub success: bool,
+req_model! {
+    #[derive(Deserialize)]
+    pub struct ResponseMetadata {
+        pub code: u16,
+        #[serde(rename = "message", serialize_with="serialize::varchar", deserialize_with = "deserialize::varchar")]
+        pub message: [u8; 2048],
+        pub timestamp: i64,
+        pub success: bool,
+    }
 }
 
-#[repr(C)]
-#[derive(Default, Debug, Copy, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RangeFilter {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub min: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max: Option<i64>,
+req_model! {
+    pub struct RangeFilter {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub min: Option<i64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub max: Option<i64>,
+    }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PaginationOptions {
-    pub page: i32,
-    pub limit: i32,
-    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
-    pub order: Option<[u8; 128]>,
+req_model! {
+    pub struct PaginationOptions {
+        pub page: i32,
+        pub limit: i32,
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
+        pub order: Option<[u8; 128]>,
+    }
 }
 
-#[repr(C)]
-#[derive(Default, Debug, Copy, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Pagination {
-    pub limit: i32,
-    pub items: i32,
-    pub pages: i32,
-    pub page: i32,
-    pub from: i32,
-    pub to: i32,
-    pub start: bool,
-    pub end: bool,
+res_model! {
+    pub struct Pagination {
+        pub limit: i32,
+        pub items: i32,
+        pub pages: i32,
+        pub page: i32,
+        pub from: i32,
+        pub to: i32,
+        pub start: bool,
+        pub end: bool,
+    }
 }
 
 // Response Models
-#[repr(C)]
-#[derive(Default, Debug, Copy, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BlankResponse {
-    pub metadata: ResponseMetadata,
+res_model! {
+    pub struct BlankResponse {
+        pub metadata: ResponseMetadata,
+    }
 }
 
 // Implements
@@ -74,27 +69,6 @@ impl RequestMetadata {
         let mut metadata = Self::default();
         metadata.session_id = session_id;
         metadata
-    }
-}
-
-// Default Implements
-impl Default for RequestMetadata {
-    fn default() -> Self {
-        Self {
-            session_id: [0u8; 16],
-            timestamp: utils::timestamp().unwrap_or(0),
-        }
-    }
-}
-
-impl Default for ResponseMetadata {
-    fn default() -> Self {
-        Self {
-            code: 0,
-            message: [0u8; 2048],
-            timestamp: 0,
-            success: false,
-        }
     }
 }
 

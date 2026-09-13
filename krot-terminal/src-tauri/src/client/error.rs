@@ -1,14 +1,22 @@
+use crate::client::api::model::common::ResponseMetadata;
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub enum ClientError {
-    BadRequest,
+    // Boxing because stack size would get too large
+    BadRequest(Box<ResponseMetadata>),
     Unauthorized,
-    Forbidden,
-    NotFound,
-    Conflict,
-    InternalServerError,
+    Forbidden(Box<ResponseMetadata>),
+    NotFound(Box<ResponseMetadata>),
+    Conflict(Box<ResponseMetadata>),
+    InternalServerError(Box<ResponseMetadata>),
     ServiceUnavailable,
+
+    UnauthenticatedBadRequest,
+    UnauthenticatedForbidden,
+    UnauthenticatedNotFound,
+    UnauthenticatedConflict,
+    UnauthenticatedInternalServerError,
 
     CredentialsNotFound,
     SessionNotFound,

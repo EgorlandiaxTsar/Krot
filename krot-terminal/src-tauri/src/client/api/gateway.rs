@@ -1,14 +1,20 @@
 use crate::client::api::model::auth::{ApiAuthenticationRequest, AuthenticationCredentials, AuthenticationResponse, DisconnectRequest};
-use crate::client::api::model::common::RequestMetadata;
+use crate::client::api::model::common::BlankResponse;
+use crate::client::api::model::device::{DeviceCreateRequest, DeviceDeleteCollaboratorRequest, DeviceDeleteRequest, DeviceEditRequest, DeviceFilterRequest, DeviceFilterResponse, DeviceTransferOwnershipRequest, DeviceUpsertCollaboratorRequest};
+use crate::client::api::model::program::{ProgramCreateRequest, ProgramDeleteCollaboratorRequest, ProgramDeleteRequest, ProgramEditRequest, ProgramFilterRequest, ProgramFilterResponse, ProgramTransferOwnershipRequest, ProgramUpsertCollaboratorRequest};
+use crate::client::api::model::role::{RoleCreateRequest, RoleDeleteRequest, RoleEditRequest, RoleFilterRequest, RoleFilterResponse};
+use crate::client::api::model::session::{SessionFilterRequest, SessionFilterResponse};
+use crate::client::api::model::size::{JsonSized, MemorySized};
+use crate::client::api::model::user::{UserCreateRequest, UserDeleteRequest, UserEditPasswordRequest, UserEditRequest, UserFilterRequest, UserFilterResponse};
 use crate::client::client::{KeyBuffer, NonceBuffer, PathBuffer, SessionRefBuffer, TagBuffer, KEY_BUFFER_B64_LEN, KEY_BUFFER_LEN, NONCE_BUFFER_B64_LEN, NONCE_BUFFER_LEN, PATH_BUFFER_LEN, TAG_BUFFER_B64_LEN, TAG_BUFFER_LEN};
 use crate::client::error::ClientError;
 use crate::client::secret::credentials::CredentialsHolder;
 use crate::client::secret::session::SessionHolder;
 use crate::client::types::converters;
-use crate::client::utils::{new_http_url, new_url};
+use crate::client::utils::{endpoint, new_http_url, new_url};
 use crate::crypto::cipher::{ChaCha20Poly1305Cipher, Decryptor, Encryptor};
 use crate::crypto::ephemeral::EphemeralEngine;
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use rand::rngs::SysRng;
 use rand_core::TryRng;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
@@ -51,7 +57,46 @@ impl ApiGateway {
         }
     }
 
+    // Security
+    endpoint!(disconnect, POST, b"/api/auth/disconnect", DisconnectRequest, BlankResponse);
+
+    // Role
+    endpoint!(filter_roles, POST, b"/api/role", RoleFilterRequest, RoleFilterResponse);
+    endpoint!(create_role, POST, b"/api/role/manage", RoleCreateRequest, BlankResponse);
+    endpoint!(edit_role, PATCH, b"/api/role/manage", RoleEditRequest, BlankResponse);
+    endpoint!(delete_roles, POST, b"/api/role/delete", RoleDeleteRequest, BlankResponse);
+
+    // User
+    endpoint!(filter_users, POST, b"/api/user", UserFilterRequest, UserFilterResponse);
+    endpoint!(create_user, POST, b"/api/user/manage", UserCreateRequest, BlankResponse);
+    endpoint!(edit_user, PATCH, b"/api/user/manage", UserEditRequest, BlankResponse);
+    endpoint!(edit_user_password, PATCH, b"/api/user/manage/password", UserEditPasswordRequest, BlankResponse);
+    endpoint!(delete_users, POST, b"/api/user/delete", UserDeleteRequest, BlankResponse);
+
+    // Device
+    endpoint!(filter_devices, POST, b"/api/device", DeviceFilterRequest, DeviceFilterResponse);
+    endpoint!(create_device, POST, b"/api/device/manage", DeviceCreateRequest, BlankResponse);
+    endpoint!(edit_device, PATCH, b"/api/device/manage", DeviceEditRequest, BlankResponse);
+    endpoint!(delete_devices, POST, b"/api/device/delete", DeviceDeleteRequest, BlankResponse);
+    endpoint!(upsert_device_collaborator, PATCH, b"/api/device/manage/collaborator/upsert", DeviceUpsertCollaboratorRequest, BlankResponse);
+    endpoint!(delete_device_collaborator, POST, b"/api/device/manage/collaborator/delete", DeviceDeleteCollaboratorRequest, BlankResponse);
+    endpoint!(transfer_device_ownership, POST, b"/api/device/transfer", DeviceTransferOwnershipRequest, BlankResponse);
+
+    // Program
+    endpoint!(filter_programs, POST, b"/api/program", ProgramFilterRequest, ProgramFilterResponse);
+    endpoint!(create_program, POST, b"/api/program/manage", ProgramCreateRequest, BlankResponse);
+    endpoint!(edit_program, PATCH, b"/api/program/manage", ProgramEditRequest, BlankResponse);
+    endpoint!(delete_programs, POST, b"/api/program/delete", ProgramDeleteRequest, BlankResponse);
+    endpoint!(upsert_program_collaborator, PATCH, b"/api/program/manage/collaborator/upsert", ProgramUpsertCollaboratorRequest, BlankResponse);
+    endpoint!(delete_program_collaborator, POST, b"/api/program/manage/collaborator/delete", ProgramDeleteCollaboratorRequest, BlankResponse);
+    endpoint!(transfer_program_ownership, POST, b"/api/program/transfer", ProgramTransferOwnershipRequest, BlankResponse);
+
+    // Session
+    endpoint!(filter_sessions, POST, b"/api/session", SessionFilterRequest, SessionFilterResponse);
+
+
     pub async fn hello(&self) -> Result<(), ClientError> {
+        println!();
         self.unauthenticated_request(&new_url(b"/hello"), &mut [0u8; 24]).await?;
         Ok(())
     }
@@ -100,22 +145,7 @@ impl ApiGateway {
         Ok(())
     }
 
-    pub async fn disconnect(&self) -> Result<(), ClientError> {
-        let session = self.session.current()?;
-        self.post::<DisconnectRequest, [u8; 0], 512, 0>(
-            &new_url(b"/api/auth/disconnect"),
-            Some(&DisconnectRequest {
-                metadata: RequestMetadata::new(session.id)
-            }),
-            true,
-            true,
-            &mut [0u8; 0],
-        ).await?;
-        self.session.clear();
-        Ok(())
-    }
-
-    pub async fn get<E: serde::de::DeserializeOwned + Default, const SE: usize>(
+    pub async fn get<E: serde::de::DeserializeOwned + Default + MemorySized + JsonSized, const SE: usize>(
         &self,
         path: &PathBuffer,
         decrypt: bool,
@@ -131,7 +161,7 @@ impl ApiGateway {
         ).await
     }
 
-    pub async fn post<T: serde::Serialize + Default, E: serde::de::DeserializeOwned + Default, const ST: usize, const SE: usize>(
+    pub async fn post<T: serde::Serialize + Default + MemorySized + JsonSized, E: serde::de::DeserializeOwned + Default + MemorySized + JsonSized, const ST: usize, const SE: usize>(
         &self,
         path: &PathBuffer,
         body: Option<&T>,
@@ -149,7 +179,7 @@ impl ApiGateway {
         ).await
     }
 
-    pub async fn patch<T: serde::Serialize + Default, E: serde::de::DeserializeOwned + Default, const ST: usize, const SE: usize>(
+    pub async fn patch<T: serde::Serialize + Default + MemorySized + JsonSized, E: serde::de::DeserializeOwned + Default + MemorySized + JsonSized, const ST: usize, const SE: usize>(
         &self,
         path: &PathBuffer,
         body: Option<&T>,
@@ -167,7 +197,7 @@ impl ApiGateway {
         ).await
     }
 
-    pub async fn put<T: serde::Serialize + Default, E: serde::de::DeserializeOwned + Default, const ST: usize, const SE: usize>(
+    pub async fn put<T: serde::Serialize + Default + MemorySized + JsonSized, E: serde::de::DeserializeOwned + Default + MemorySized + JsonSized, const ST: usize, const SE: usize>(
         &self,
         path: &PathBuffer,
         body: Option<&T>,
@@ -186,8 +216,8 @@ impl ApiGateway {
     }
 
     async fn req<
-        T: serde::Serialize + Default,
-        E: serde::de::DeserializeOwned + Default,
+        T: serde::Serialize + Default + MemorySized + JsonSized,
+        E: serde::de::DeserializeOwned + Default + MemorySized + JsonSized,
         const ST: usize,
         const SE: usize,
     >(
@@ -241,16 +271,18 @@ impl ApiGateway {
         Ok(())
     }
 
-    fn unwrap_http_errors(&self, status_code: u16) -> Result<(), ClientError> {
-        match status_code {
-            400 => Err(ClientError::BadRequest),
-            401 => Err(ClientError::Unauthorized),
-            403 => Err(ClientError::Forbidden),
-            404 => Err(ClientError::NotFound),
-            409 => Err(ClientError::Conflict),
-            500 => Err(ClientError::InternalServerError),
-            503 => Err(ClientError::ServiceUnavailable),
-            _ => Ok(())
+    fn map_http_errors(&self, status: u16, body: &[u8]) -> Result<(), ClientError> {
+        if status < 399 { return Ok(()); }
+        let metadata = || serde_json::from_slice::<BlankResponse>(body)
+            .map(|r| r.metadata)
+            .unwrap_or_default();
+        match status {
+            400 => Err(ClientError::BadRequest(Box::from(metadata()))),
+            403 => Err(ClientError::Forbidden(Box::from(metadata()))),
+            404 => Err(ClientError::NotFound(Box::from(metadata()))),
+            409 => Err(ClientError::Conflict(Box::from(metadata()))),
+            500 => Err(ClientError::InternalServerError(Box::from(metadata()))),
+            _ => Ok(()),
         }
     }
 
@@ -326,22 +358,28 @@ impl ApiGateway {
         Ok(())
     }
 
-    async fn handle_response<E: serde::de::DeserializeOwned + Default, const SE: usize>(&self, res: reqwest::Response, key: Option<&KeyBuffer>, out: &mut E) -> Result<(), ClientError> {
-        self.unwrap_http_errors(res.status().as_u16())?;
+    async fn handle_response<E: serde::de::DeserializeOwned + Default + JsonSized, const SE: usize>(&self, res: reqwest::Response, key: Option<&KeyBuffer>, out: &mut E) -> Result<(), ClientError> {
+        let status = res.status().as_u16();
+        if status == 401 { return Err(ClientError::Unauthorized); }
+        if status == 503 { return Err(ClientError::ServiceUnavailable); }
+
         let decrypt = res.headers().contains_key(RESPONSE_TAG_HEADER_NAME) && res.headers().contains_key(RESPONSE_NONCE_HEADER_NAME) && key.is_some();
         let mut res_tag_buf: TagBuffer = [0u8; TAG_BUFFER_LEN];
         let mut res_nonce_buf: NonceBuffer = [0u8; NONCE_BUFFER_LEN];
         if decrypt {
-            let res_tag_header = res.headers().get(RESPONSE_TAG_HEADER_NAME).ok_or(ClientError::DecryptionFailed)?;
-            let res_nonce_header = res.headers().get(RESPONSE_NONCE_HEADER_NAME).ok_or(ClientError::DecryptionFailed)?;
-            converters::b64_to_bytes(res_tag_header.as_bytes(), &mut res_tag_buf)?;
-            converters::b64_to_bytes(res_nonce_header.as_bytes(), &mut res_nonce_buf)?;
+            let tag_header = res.headers().get(RESPONSE_TAG_HEADER_NAME).ok_or(ClientError::DecryptionFailed)?;
+            let nonce_header = res.headers().get(RESPONSE_NONCE_HEADER_NAME).ok_or(ClientError::DecryptionFailed)?;
+            converters::b64_to_bytes(tag_header.as_bytes(), &mut res_tag_buf)?;
+            converters::b64_to_bytes(nonce_header.as_bytes(), &mut res_nonce_buf)?;
         }
 
-        let body_buf: &mut [u8] = &mut BytesMut::from(res.bytes().await.map_err(|_| ClientError::NetworkError)?);
+        let mut body_buf = res.bytes().await.map_err(|_| ClientError::NetworkError)?.to_vec();
         if body_buf.len() > SE { return Err(ClientError::BufferTooSmall); }
-        if let Some(actual_key) = key { self.cipher.decrypt(body_buf, actual_key, &res_tag_buf, &res_nonce_buf).map_err(|_| ClientError::DecryptionFailed)?; }
-        converters::bytes_to_body::<E>(body_buf, out)?;
+        if let (Some(actual_key), true) = (key, decrypt) { self.cipher.decrypt(&mut body_buf, actual_key, &res_tag_buf, &res_nonce_buf).map_err(|_| ClientError::DecryptionFailed)?; }
+
+        self.map_http_errors(status, &body_buf)?;
+
+        converters::bytes_to_body::<E>(&body_buf, out)?;
 
         Ok(())
     }
@@ -359,10 +397,24 @@ impl ApiGateway {
                       .send()
                       .await
                       .map_err(|_| ClientError::NetworkError)?;
-        self.unwrap_http_errors(res.status().as_u16())?;
+
+        match res.status().as_u16() {
+            400 => Err(ClientError::UnauthenticatedBadRequest),
+            401 => Err(ClientError::Unauthorized),
+            403 => Err(ClientError::UnauthenticatedForbidden),
+            404 => Err(ClientError::UnauthenticatedNotFound),
+            409 => Err(ClientError::UnauthenticatedConflict),
+            500 => Err(ClientError::UnauthenticatedInternalServerError),
+            503 => Err(ClientError::ServiceUnavailable),
+            _ => Ok(())
+        }?;
+
         let res_buf = res.bytes().await.map_err(|_| ClientError::NetworkError)?;
         if res_buf.len() > out.len() { return Err(ClientError::BufferTooSmall); };
         out[..res_buf.len()].copy_from_slice(&res_buf);
         Ok(res_buf.len())
     }
 }
+
+impl MemorySized for [u8; 0] {}
+impl JsonSized for [u8; 0] { const JSON_SIZE: usize = 0; }

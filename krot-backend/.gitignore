@@ -46,3 +46,4 @@ nb-configuration.xml
 .dev/
 /.dev/
 /dump.rdb
+/krot-api-spec_openapi-v3.1_compressed.json

@@ -6,7 +6,7 @@ use std::time;
 macro_rules! endpoint {
     ($name:ident, GET, $path:expr, $red:ty) => {
         pub async fn $name(&self, out: &mut $res) -> Result<(), ClientError> {
-            self.req::<(), $res, 0, { $res as JsonSized }::JSON_SIZE>(
+            self.req::<(), $res, 0, { <$res as JsonSized>::JSON_SIZE }>(
                 RequestType::Get,
                 &new_url($path),
                 None,
@@ -18,8 +18,8 @@ macro_rules! endpoint {
     };
 
     ($name:ident, $method:ident, $path:expr, $req:ty, $res:ty) => {
-        pub async fn $name(&self, body: &$req, out &mut $res) -> Result<(), ClientError> {
-            self.req::<$req, $res, { <$req as JsonSized>::JSON_SIZE }, { <$res as JsonSized>::JSON_SIZE } >(
+        pub async fn $name(&self, body: &$req, out: &mut $res) -> Result<(), ClientError> {
+            self.req::<$req, $res, { <$req as JsonSized>::JSON_SIZE }, { <$res as JsonSized>::JSON_SIZE }>(
                 endpoint!(@method_variant $method),
                 &new_url($path),
                 Some(body),
@@ -36,6 +36,110 @@ macro_rules! endpoint {
 }
 
 pub(crate) use endpoint;
+
+macro_rules! new_model {
+    (
+        $serde_derive:path,
+        $(#[$struct_attr:meta])*
+        pub struct $name:ident {
+            $($fields:tt)*
+        }
+    ) => {
+        new_model!(@collect
+            serde_derive = [$serde_derive],
+            struct_attrs = [$(#[$struct_attr])*],
+            name = $name,
+            emitted_fields = [],
+            defaults = [],
+            remaining = [$($fields)*]
+        );
+    };
+
+    (@collect
+        serde_derive = [$serde_derive:path],
+        struct_attrs = [$($struct_attr:tt)*],
+        name = $name:ident,
+        emitted_fields = [$($emitted:tt)*],
+        defaults = [$($defaults:tt)*],
+        remaining = [
+            $(#[$field_attr:meta])*
+            pub $field:ident : [u8; $n:expr]
+            $(, $($rest:tt)*)?
+        ]
+    ) => {
+        new_model!(@collect
+            serde_derive = [$serde_derive],
+            struct_attrs = [$($struct_attr)*],
+            name = $name,
+            emitted_fields = [$($emitted)* $(#[$field_attr])* pub $field: [u8; $n],],
+            defaults = [$($defaults)* $field: [0u8; $n],],
+            remaining = [$($($rest)*)?]
+        );
+    };
+
+    (@collect
+        serde_derive = [$serde_derive:path],
+        struct_attrs = [$($struct_attr:tt)*],
+        name = $name:ident,
+        emitted_fields = [$($emitted:tt)*],
+        defaults = [$($defaults:tt)*],
+        remaining = [
+            $(#[$field_attr:meta])*
+            pub $field:ident : $field_ty:ty
+            $(, $($rest:tt)*)?
+        ]
+    ) => {
+        new_model!(@collect
+            serde_derive = [$serde_derive],
+            struct_attrs = [$($struct_attr)*],
+            name = $name,
+            emitted_fields = [$($emitted)* $(#[$field_attr])* pub $field: $field_ty,],
+            defaults = [$($defaults)* $field: <$field_ty as Default>::default(),],
+            remaining = [$($($rest)*)?]
+        );
+    };
+
+    (@collect
+        serde_derive = [$serde_derive:path],
+        struct_attrs = [$($struct_attr:tt)*],
+        name = $name:ident,
+        emitted_fields = [$($emitted:tt)*],
+        defaults = [$($defaults:tt)*],
+        remaining = []
+    ) => {
+        #[repr(C)]
+        $($struct_attr)*
+        #[derive(PartialEq, Eq, Debug, Clone, $serde_derive)]
+        #[serde(rename_all = "camelCase")]
+        pub struct $name {
+            $($emitted)*
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self { $($defaults)* }
+            }
+        }
+    };
+}
+
+pub(crate) use new_model;
+
+macro_rules! req_model {
+    ($($tokens:tt)*) => {
+        new_model!(serde::Serialize, $($tokens)*);
+    };
+}
+
+pub(crate) use req_model;
+
+macro_rules! res_model {
+    ($($tokens:tt)*) => {
+        new_model!(serde::Deserialize, $($tokens)*);
+    };
+}
+
+pub(crate) use res_model;
 
 pub fn timestamp() -> Result<i64, ClientError> {
     Ok(time::SystemTime::now()

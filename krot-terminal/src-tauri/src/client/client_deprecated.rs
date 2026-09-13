@@ -111,10 +111,10 @@ impl KrotClient {
             .map_err(|_| ClientError::NetworkError)?;
         if !response.status().is_success() {
             return Err(match response.status() {
-                reqwest::StatusCode::BAD_REQUEST => ClientError::BadRequest,
+                reqwest::StatusCode::BAD_REQUEST => ClientError::UnauthenticatedBadRequest,
                 reqwest::StatusCode::UNAUTHORIZED => ClientError::Unauthorized,
-                reqwest::StatusCode::FORBIDDEN => ClientError::Forbidden,
-                reqwest::StatusCode::NOT_FOUND => ClientError::NotFound,
+                reqwest::StatusCode::FORBIDDEN => ClientError::UnauthenticatedForbidden,
+                reqwest::StatusCode::NOT_FOUND => ClientError::UnauthenticatedNotFound,
                 _ => ClientError::ServiceUnavailable,
             });
         }
@@ -216,13 +216,13 @@ impl KrotClient {
         let status_code = response.status().as_u16();
         if status_code > 399 {
             return Err(match status_code {
-                400 => ClientError::BadRequest,
+                400 => ClientError::UnauthenticatedBadRequest,
                 401 => ClientError::Unauthorized,
-                403 => ClientError::Forbidden,
-                404 => ClientError::NotFound,
-                409 => ClientError::Conflict,
+                403 => ClientError::UnauthenticatedForbidden,
+                404 => ClientError::UnauthenticatedNotFound,
+                409 => ClientError::UnauthenticatedConflict,
                 503 => ClientError::ServiceUnavailable,
-                _ => ClientError::InternalServerError,
+                _ => ClientError::UnauthenticatedInternalServerError,
             });
         }
         self
@@ -326,11 +326,11 @@ impl KrotClient {
         let status_code = response.status().as_u16();
         if status_code > 399 {
             return Err(match status_code {
-                400 => ClientError::BadRequest,
-                403 => ClientError::Forbidden,
-                404 => ClientError::NotFound,
+                400 => ClientError::UnauthenticatedBadRequest,
+                403 => ClientError::UnauthenticatedForbidden,
+                404 => ClientError::UnauthenticatedNotFound,
                 503 => ClientError::ServiceUnavailable,
-                _ => ClientError::InternalServerError,
+                _ => ClientError::UnauthenticatedInternalServerError,
             });
         }
         self.process_response::<AuthenticationResponse, 2048>(
