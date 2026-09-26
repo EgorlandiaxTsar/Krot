@@ -1,8 +1,7 @@
 use crate::client::api::model::common::{IdList, Pagination, PaginationOptions, RangeFilter, RequestMetadata, ResponseMetadata};
 use crate::client::api::model::size::{bool_cost, i64_cost, uuid_cost, varchar_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils::res_model;
-use crate::client::utils::{new_model, req_model};
+use crate::client::utils::new_model;
 
 pub const USER_USERNAME_LEN: usize = 32; // UserEntity.username, length = 32
 pub const USER_USERNAME_BUF_LEN: usize = USER_USERNAME_LEN * 4;
@@ -10,13 +9,13 @@ pub const USER_PASSWORD_LEN: usize = 32; // UserEntity.password, length = 32 (sp
 pub const USER_PASSWORD_BUF_LEN: usize = USER_PASSWORD_LEN * 4;
 
 // Models
-res_model! {
+new_model! {
     pub struct UserModel {
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(deserialize_with = "deserialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub username: [u8; USER_USERNAME_BUF_LEN],
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub role_id: [u8; 16],
         pub active: bool,
         pub created_at: i64,
@@ -24,70 +23,71 @@ res_model! {
 }
 
 // Request Models
-req_model! {
+new_model! {
     pub struct UserFilterRequest {
         pub metadata: RequestMetadata,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt", deserialize_with = "deserialize::uuid_vec_opt")]
         pub ids: Option<IdList>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub active: Option<bool>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub creation_time: Option<RangeFilter>,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt", deserialize_with = "deserialize::uuid_opt")]
         pub role_id: Option<[u8; 16]>,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt", deserialize_with = "deserialize::varchar_opt")]
         pub username_query: Option<[u8; USER_USERNAME_BUF_LEN]>,
         pub pagination: PaginationOptions,
     }
 }
 
-req_model! {
+new_model! {
     pub struct UserCreateRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub username: [u8; USER_USERNAME_BUF_LEN],
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub password: [u8; USER_PASSWORD_BUF_LEN],
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub role_id: [u8; 16],
     }
 }
 
-req_model! {
+new_model! {
     pub struct UserEditRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(serialize_with = "serialize::varchar_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt", deserialize_with = "deserialize::varchar_opt")]
         pub username: Option<[u8; USER_USERNAME_BUF_LEN]>,
-        #[serde(serialize_with = "serialize::uuid_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt", deserialize_with = "deserialize::uuid_opt")]
         pub role_id: Option<[u8; 16]>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub active: Option<bool>,
     }
 }
 
-req_model! {
+new_model! {
     pub struct UserEditPasswordRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub password: [u8; USER_PASSWORD_BUF_LEN],
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub new_password: [u8; USER_PASSWORD_BUF_LEN],
     }
 }
 
-req_model! {
+new_model! {
     pub struct UserDeleteRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid_vec")]
+        #[serde(serialize_with = "serialize::uuid_vec", deserialize_with = "deserialize::uuid_vec")]
         pub ids: IdList,
     }
 }
 
 // Response Models
-res_model! {
+new_model! {
     pub struct UserFilterResponse {
         pub metadata: ResponseMetadata,
         pub data: Vec<UserModel>,

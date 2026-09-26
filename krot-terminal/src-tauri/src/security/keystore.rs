@@ -112,7 +112,7 @@ impl Keystore<Session> for SessionKeystore {
     fn read(&self, idx: u8, out: &mut Session) -> Result<(), SecurityError> {
         let mut buf = [0u8; SESSION_SIZE];
         self.bytes_keystore.read_b64::<SESSION_B64_SIZE>(idx, &mut buf)?;
-        *out = unsafe { std::mem::transmute(buf) };
+        *out = unsafe { std::mem::transmute::<[u8; 72], Session>(buf) };
         Ok(())
     }
 }

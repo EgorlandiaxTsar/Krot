@@ -12,8 +12,8 @@ macro_rules! authority_enum {
 
         impl Authority {
             pub const ALL: &'static [Authority] = &[$(Authority::$variant,)*];
-            fn as_str(&self) -> &'static str { match self { $(Authority::$variant => stringify!($variant),)* } }
-            fn from_str(s: &str) -> Option<Self> {
+            pub fn as_str(&self) -> &'static str { match self { $(Authority::$variant => stringify!($variant),)* } }
+            pub fn from_str(s: &str) -> Option<Self> {
                 match s { $(stringify!($variant) => Some(Authority::$variant),)* _ => None }
             }
         }

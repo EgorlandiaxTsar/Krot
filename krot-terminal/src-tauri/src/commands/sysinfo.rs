@@ -26,9 +26,7 @@ pub async fn stream_battery_status(channel: Channel<BatteryStatus>) -> Result<()
         let mut status;
         loop {
             status = fetch_battery_status();
-            if let Err(_) = channel.send(status) {
-                break;
-            }
+            if channel.send(status).is_err() { break; }
             tokio::time::sleep(Duration::from_secs(5)).await;
         }
     });
@@ -39,9 +37,7 @@ pub async fn stream_battery_status(channel: Channel<BatteryStatus>) -> Result<()
 pub async fn stream_time(channel: Channel<i64>) -> Result<(), CommandError> {
     tokio::spawn(async move {
         loop {
-            if let Err(_) = channel.send(fetch_system_timestamp()) {
-                break;
-            }
+            if channel.send(fetch_system_timestamp()).is_err() { break; }
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
     });

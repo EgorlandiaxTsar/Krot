@@ -1,33 +1,32 @@
 use crate::client::api::model::common::{IdList, Pagination, PaginationOptions, RangeFilter, RequestMetadata, ResponseMetadata};
 use crate::client::api::model::size::{bool_cost, i64_cost, uuid_cost, varchar_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD, MAX_PAGE_LIMIT};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils::res_model;
-use crate::client::utils::{new_model, req_model};
+use crate::client::utils::new_model;
 
 pub const PROGRAM_NAME_LEN: usize = 64;
 pub const PROGRAM_NAME_BUF_LEN: usize = PROGRAM_NAME_LEN * 4;
 
 // Models
-res_model! {
+new_model! {
     pub struct ProgramModel {
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(deserialize_with = "deserialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub name: [u8; PROGRAM_NAME_BUF_LEN],
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub owner_id: [u8; 16],
         pub created_at: i64,
         pub collaborators: Vec<ProgramCollaboratorModel>,
     }
 }
 
-res_model! {
+new_model! {
     pub struct ProgramCollaboratorModel {
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub user_id: [u8; 16],
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub program_id: [u8; 16],
         pub can_update_name: bool,
         pub can_update_code: bool,
@@ -35,63 +34,53 @@ res_model! {
 }
 
 // Request Models
-req_model! {
+new_model! {
     pub struct ProgramFilterRequest {
         pub metadata: RequestMetadata,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt", deserialize_with = "deserialize::uuid_vec_opt")]
         pub ids: Option<IdList>,
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt", deserialize_with = "deserialize::uuid_opt")]
+        pub owner_id: Option<[u8; 16]>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub creation_time: Option<RangeFilter>,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt")]
-        pub owner_id: Option<[u8; 16]>,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt", deserialize_with = "deserialize::varchar_opt")]
         pub name_query: Option<[u8; PROGRAM_NAME_BUF_LEN]>,
         pub pagination: PaginationOptions,
     }
 }
 
-req_model! {
+new_model! {
     pub struct ProgramCreateRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub name: [u8; PROGRAM_NAME_BUF_LEN],
     }
 }
 
-req_model! {
+new_model! {
     pub struct ProgramEditRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub name: [u8; PROGRAM_NAME_BUF_LEN],
     }
 }
 
-req_model! {
-    pub struct ProgramTransferOwnershipRequest {
-        pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
-        pub id: [u8; 16],
-        #[serde(serialize_with = "serialize::uuid")]
-        pub new_owner_id: [u8; 16],
-    }
-}
-
-req_model! {
+new_model! {
     pub struct ProgramDeleteRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid_vec")]
+        #[serde(serialize_with = "serialize::uuid_vec", deserialize_with = "deserialize::uuid_vec")]
         pub ids: IdList,
     }
 }
 
-req_model! {
+new_model! {
     pub struct ProgramUpsertCollaboratorRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub program_id: [u8; 16],
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub user_id: [u8; 16],
         #[serde(skip_serializing_if = "Option::is_none")]
         pub can_update_name: Option<bool>,
@@ -100,18 +89,28 @@ req_model! {
     }
 }
 
-req_model! {
+new_model! {
     pub struct ProgramDeleteCollaboratorRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub program_id: [u8; 16],
     }
 }
 
+new_model! {
+    pub struct ProgramTransferOwnershipRequest {
+        pub metadata: RequestMetadata,
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
+        pub id: [u8; 16],
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
+        pub new_owner_id: [u8; 16],
+    }
+}
+
 // Response Models
-res_model! {
+new_model! {
     pub struct ProgramFilterResponse {
         pub metadata: ResponseMetadata,
         pub data: Vec<ProgramModel>,

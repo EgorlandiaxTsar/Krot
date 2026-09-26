@@ -1,15 +1,14 @@
 use crate::client::api::model::common::{IdList, Pagination, PaginationOptions, RangeFilter, RequestMetadata, ResponseMetadata};
 use crate::client::api::model::size::{bool_cost, i64_cost, uuid_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD, MAX_PAGE_LIMIT};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils::res_model;
-use crate::client::utils::{new_model, req_model};
+use crate::client::utils::new_model;
 
 // Models
-res_model! {
+new_model! {
     pub struct SessionModel {
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub owner_id: [u8; 16],
         pub is_owner_device: bool,
         pub valid_until: i64,
@@ -18,14 +17,13 @@ res_model! {
 }
 
 // Request Models
-req_model! {
+new_model! {
     pub struct SessionFilterRequest {
         pub metadata: RequestMetadata,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt", deserialize_with = "deserialize::uuid_vec_opt")]
         pub ids: Option<IdList>,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_opt", deserialize_with = "deserialize::uuid_opt")]
         pub owner_id: Option<[u8; 16]>,
-        // Treated as optional — see note above.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub valid_until_time: Option<RangeFilter>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -35,7 +33,7 @@ req_model! {
 }
 
 // Response Models
-res_model! {
+new_model! {
     pub struct SessionFilterResponse {
         pub metadata: ResponseMetadata,
         pub data: Vec<SessionModel>,

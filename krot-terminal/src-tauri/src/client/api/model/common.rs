@@ -1,21 +1,19 @@
 use crate::client::api::model::size::{bool_cost, i32_cost, i64_cost, uuid_cost, varchar_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils::{new_model, req_model, res_model};
-use serde::Deserialize;
+use crate::client::utils::new_model;
 
 pub type IdList = Vec<[u8; 16]>;
 
 // Models
-req_model! {
+new_model! {
     pub struct RequestMetadata {
-        #[serde(rename = "sessionId", serialize_with = "serialize::uuid")]
+        #[serde(rename = "sessionId", serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub session_id: [u8; 16],
         pub timestamp: i64,
     }
 }
 
-req_model! {
-    #[derive(Deserialize)]
+new_model! {
     pub struct ResponseMetadata {
         pub code: u16,
         #[serde(rename = "message", serialize_with="serialize::varchar", deserialize_with = "deserialize::varchar")]
@@ -25,7 +23,7 @@ req_model! {
     }
 }
 
-req_model! {
+new_model! {
     pub struct RangeFilter {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub min: Option<i64>,
@@ -34,16 +32,16 @@ req_model! {
     }
 }
 
-req_model! {
+new_model! {
     pub struct PaginationOptions {
         pub page: i32,
         pub limit: i32,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt", deserialize_with = "deserialize::varchar_opt")]
         pub order: Option<[u8; 128]>,
     }
 }
 
-res_model! {
+new_model! {
     pub struct Pagination {
         pub limit: i32,
         pub items: i32,
@@ -57,7 +55,7 @@ res_model! {
 }
 
 // Response Models
-res_model! {
+new_model! {
     pub struct BlankResponse {
         pub metadata: ResponseMetadata,
     }

@@ -39,14 +39,12 @@ pub(crate) use endpoint;
 
 macro_rules! new_model {
     (
-        $serde_derive:path,
         $(#[$struct_attr:meta])*
         pub struct $name:ident {
             $($fields:tt)*
         }
     ) => {
         new_model!(@collect
-            serde_derive = [$serde_derive],
             struct_attrs = [$(#[$struct_attr])*],
             name = $name,
             emitted_fields = [],
@@ -56,7 +54,6 @@ macro_rules! new_model {
     };
 
     (@collect
-        serde_derive = [$serde_derive:path],
         struct_attrs = [$($struct_attr:tt)*],
         name = $name:ident,
         emitted_fields = [$($emitted:tt)*],
@@ -68,7 +65,6 @@ macro_rules! new_model {
         ]
     ) => {
         new_model!(@collect
-            serde_derive = [$serde_derive],
             struct_attrs = [$($struct_attr)*],
             name = $name,
             emitted_fields = [$($emitted)* $(#[$field_attr])* pub $field: [u8; $n],],
@@ -78,7 +74,6 @@ macro_rules! new_model {
     };
 
     (@collect
-        serde_derive = [$serde_derive:path],
         struct_attrs = [$($struct_attr:tt)*],
         name = $name:ident,
         emitted_fields = [$($emitted:tt)*],
@@ -90,7 +85,6 @@ macro_rules! new_model {
         ]
     ) => {
         new_model!(@collect
-            serde_derive = [$serde_derive],
             struct_attrs = [$($struct_attr)*],
             name = $name,
             emitted_fields = [$($emitted)* $(#[$field_attr])* pub $field: $field_ty,],
@@ -100,7 +94,6 @@ macro_rules! new_model {
     };
 
     (@collect
-        serde_derive = [$serde_derive:path],
         struct_attrs = [$($struct_attr:tt)*],
         name = $name:ident,
         emitted_fields = [$($emitted:tt)*],
@@ -109,7 +102,7 @@ macro_rules! new_model {
     ) => {
         #[repr(C)]
         $($struct_attr)*
-        #[derive(PartialEq, Eq, Debug, Clone, $serde_derive)]
+        #[derive(PartialEq, Eq, Debug, Clone, serde::Serialize, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
             $($emitted)*
@@ -122,24 +115,7 @@ macro_rules! new_model {
         }
     };
 }
-
 pub(crate) use new_model;
-
-macro_rules! req_model {
-    ($($tokens:tt)*) => {
-        new_model!(serde::Serialize, $($tokens)*);
-    };
-}
-
-pub(crate) use req_model;
-
-macro_rules! res_model {
-    ($($tokens:tt)*) => {
-        new_model!(serde::Deserialize, $($tokens)*);
-    };
-}
-
-pub(crate) use res_model;
 
 pub fn timestamp() -> Result<i64, ClientError> {
     Ok(time::SystemTime::now()
@@ -148,10 +124,14 @@ pub fn timestamp() -> Result<i64, ClientError> {
         .as_millis() as i64)
 }
 
-pub fn new_url(bytes: &[u8]) -> PathBuffer {
-    let mut buf = [0u8; 256];
-    buf[..bytes.len()].copy_from_slice(bytes);
+pub fn new_buffer<const S: usize>(bytes: &[u8]) -> [u8; S] {
+    let mut buf = [0u8; S];
+    buf[..bytes.len()].copy_from_slice(&bytes);
     buf
+}
+
+pub fn new_url(bytes: &[u8]) -> PathBuffer {
+    new_buffer::<PATH_BUFFER_LEN>(bytes)
 }
 
 pub fn new_custom_scheme_url(

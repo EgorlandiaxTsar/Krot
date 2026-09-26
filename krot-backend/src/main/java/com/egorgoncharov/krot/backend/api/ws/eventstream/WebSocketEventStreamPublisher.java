@@ -46,13 +46,7 @@ public class WebSocketEventStreamPublisher {
                     WebSocketSession session = connection.userData().get(WebSocketUserDataKeys.WS_SESSION);
                     if (session == null) return;
                     Buffer frame = encryptionFilter.encryptFrame(body, session.getSession().getSession().getEncryptionKey());
-                    connection.sendBinary(frame).subscribe().with(
-                            ignored -> {
-                            },
-                            failure -> {
-                                // TODO: Handle error gracefully
-                            }
-                    );
+                    connection.sendBinary(frame).subscribe().with(ignored -> {}, failure -> { /* TODO: Handle error gracefully */ });
                 });
     }
 }

@@ -96,11 +96,9 @@ impl ApiGateway {
 
 
     pub async fn hello(&self) -> Result<(), ClientError> {
-        println!();
         self.unauthenticated_request(&new_url(b"/hello"), &mut [0u8; 24]).await?;
         Ok(())
     }
-
 
     pub async fn pubkey(&self, out: &mut KeyBuffer) -> Result<(), ClientError> {
         let mut res_buf = [0u8; 44];

@@ -1,8 +1,18 @@
 pub mod serialize {
     pub(crate) use crate::client::api::model::common::IdList;
     use crate::client::types::converters::HEX_CHARS;
+    use base64::prelude::BASE64_STANDARD;
+    use base64::Engine;
     use serde::ser::SerializeSeq;
     use serde::Serializer;
+
+    pub fn b32_encryption_key<S: Serializer>(
+        key: &[u8; 32],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        let encoded = BASE64_STANDARD.encode(key);
+        serializer.serialize_str(&encoded)
+    }
 
     pub fn varchar<const N: usize, S: Serializer>(
         data: &[u8; N],
@@ -86,10 +96,11 @@ pub mod serialize {
 }
 
 pub mod deserialize {
+    use crate::client::api::model::common::IdList;
     use base64::prelude::BASE64_STANDARD;
     use base64::Engine;
     use serde::de::{Error, SeqAccess, Visitor};
-    use serde::{Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer, Serializer};
     use std::fmt;
 
     pub fn varchar<'de, const N: usize, D: Deserializer<'de>>(deserializer: D) -> Result<[u8; N], D::Error> {
@@ -139,10 +150,10 @@ pub mod deserialize {
         parse_uuid(data.as_bytes()).map_err(D::Error::custom)
     }
 
-    pub fn uuid_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<super::serialize::IdList, D::Error> {
+    pub fn uuid_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<IdList, D::Error> {
         struct V;
         impl<'de> Visitor<'de> for V {
-            type Value = super::serialize::IdList;
+            type Value = IdList;
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.write_str("an array of UUID strings")
             }
@@ -157,7 +168,27 @@ pub mod deserialize {
         deserializer.deserialize_seq(V)
     }
 
-    fn parse_uuid(data: &[u8]) -> Result<[u8; 16], &'static str> {
+    pub fn uuid_opt<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<[u8; 16]>, D::Error> {
+        match Option::<&str>::deserialize(deserializer)? {
+            Some(s) => parse_uuid(s.as_bytes()).map(Some).map_err(D::Error::custom),
+            None => Ok(None),
+        }
+    }
+
+    pub fn uuid_vec_opt<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<super::serialize::IdList>, D::Error> {
+        match Option::<Vec<&str>>::deserialize(deserializer)? {
+            Some(items) => {
+                let mut out = Vec::with_capacity(items.len());
+                for s in items {
+                    out.push(parse_uuid(s.as_bytes()).map_err(D::Error::custom)?);
+                }
+                Ok(Some(out))
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub(crate) fn parse_uuid(data: &[u8]) -> Result<[u8; 16], &'static str> {
         if data.len() != 36 {
             return Err("UUID string must be exactly 36 characters");
         }

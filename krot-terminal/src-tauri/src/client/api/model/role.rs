@@ -2,35 +2,34 @@ use crate::client::api::model::authority::Authorities;
 use crate::client::api::model::common::{IdList, Pagination, PaginationOptions, RangeFilter, RequestMetadata, ResponseMetadata};
 use crate::client::api::model::size::{i32_cost, uuid_cost, varchar_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD, MAX_PAGE_LIMIT};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils::res_model;
-use crate::client::utils::{new_model, req_model};
+use crate::client::utils::new_model;
 
 pub const ROLE_NAME_LEN: usize = 32;
 pub const ROLE_NAME_BUF_LEN: usize = ROLE_NAME_LEN * 4;
 
 // Models
-res_model! {
+new_model! {
     pub struct RoleModel {
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(deserialize_with = "deserialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub name: [u8; ROLE_NAME_BUF_LEN],
         pub grade: i32,
         pub authorities: Authorities,
-        #[serde(deserialize_with = "deserialize::uuid_vec")]
+        #[serde(serialize_with = "serialize::uuid_vec", deserialize_with = "deserialize::uuid_vec")]
         pub users: IdList,
     }
 }
 
 // Request Models
-req_model! {
+new_model! {
     pub struct RoleFilterRequest {
         pub metadata: RequestMetadata,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::uuid_vec_opt", deserialize_with = "deserialize::uuid_vec_opt")]
         pub ids: Option<IdList>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub authorities: Option<Authorities>,
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt", deserialize_with = "deserialize::varchar_opt")]
         pub name_query: Option<[u8; ROLE_NAME_BUF_LEN]>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub grade: Option<RangeFilter>,
@@ -38,22 +37,22 @@ req_model! {
     }
 }
 
-req_model! {
+new_model! {
     pub struct RoleCreateRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub name: [u8; ROLE_NAME_BUF_LEN],
         pub grade: i32,
         pub authorities: Authorities,
     }
 }
 
-req_model! {
+new_model! {
     pub struct RoleEditRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub id: [u8; 16],
-        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt")]
+        #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize::varchar_opt", deserialize_with = "deserialize::varchar_opt")]
         pub name: Option<[u8; ROLE_NAME_BUF_LEN]>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub grade: Option<i32>,
@@ -62,16 +61,16 @@ req_model! {
     }
 }
 
-req_model! {
+new_model! {
     pub struct RoleDeleteRequest {
         pub metadata: RequestMetadata,
-        #[serde(serialize_with = "serialize::uuid_vec")]
+        #[serde(serialize_with = "serialize::uuid_vec", deserialize_with = "deserialize::uuid_vec")]
         pub ids: IdList,
     }
 }
 
 // Response Models
-res_model! {
+new_model! {
     pub struct RoleFilterResponse {
         pub metadata: ResponseMetadata,
         pub data: Vec<RoleModel>,

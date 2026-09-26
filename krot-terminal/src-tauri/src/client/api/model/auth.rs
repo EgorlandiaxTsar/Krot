@@ -1,17 +1,16 @@
 use crate::client::api::model::common::{RequestMetadata, ResponseMetadata};
 use crate::client::api::model::size::{i64_cost, uuid_cost, varchar_cost, JsonSized, MemorySized, BRACES_OVERHEAD, FIELD_OVERHEAD};
 use crate::client::types::serde::{deserialize, serialize};
-use crate::client::utils::res_model;
-use crate::client::utils::{new_model, req_model};
+use crate::client::utils::new_model;
 
 // Models
-res_model! {
+new_model! {
     pub struct AuthenticationCredentials {
-        #[serde(deserialize_with = "deserialize::uuid")]
+        #[serde(serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub session_id: [u8; 16],
-        #[serde(rename = "sessionReference", deserialize_with = "deserialize::uuid")]
+        #[serde(rename = "sessionReference", serialize_with = "serialize::uuid", deserialize_with = "deserialize::uuid")]
         pub session_ref: [u8; 16],
-        #[serde(rename = "key", deserialize_with = "deserialize::b32_encryption_key")]
+        #[serde(rename = "key", serialize_with = "serialize::b32_encryption_key", deserialize_with = "deserialize::b32_encryption_key")]
         pub encryption_key: [u8; 32],
         #[serde(rename = "expirationTimestamp", )]
         pub expiration: i64,
@@ -19,32 +18,32 @@ res_model! {
 }
 
 // Request Models
-req_model! {
+new_model! {
     pub struct ApiAuthenticationRequest {
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub identifier: [u8; 128],
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub password: [u8; 128],
         pub timestamp: i64,
-        #[serde(serialize_with = "serialize::varchar")]
+        #[serde(serialize_with = "serialize::varchar", deserialize_with = "deserialize::varchar")]
         pub target: [u8; 6],
     }
 }
 
-req_model! {
+new_model! {
     pub struct WsAuthenticationRequest {
         pub metadata: RequestMetadata,
     }
 }
 
-req_model! {
+new_model! {
     pub struct DisconnectRequest {
         pub metadata: RequestMetadata,
     }
 }
 
 // Response Models
-res_model! {
+new_model! {
     pub struct AuthenticationResponse {
         pub metadata: ResponseMetadata,
         pub data: AuthenticationCredentials,

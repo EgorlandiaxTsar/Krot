@@ -1,20 +1,36 @@
+use crate::client::api::model::common::ResponseMetadata;
 use crate::client::error::ClientError;
-use crate::security::error::SecurityError;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", content = "details")]
 pub enum CommandError {
-    ClientAuthenticationFailed(ClientError),
-    ClientCredentialsUpdateFailed(ClientError),
-    ClientDisconnectFailed(ClientError),
-    ClientHelloFailed(ClientError),
+    // Internal
+    Argument(String),
+    Internal(String),
 
-    CredentialsNotFound,
-    SessionNotFound,
+    // Login Flow
+    Hello,
+    PubkeyRetrieval(ClientError),
+    Authentication(ClientError),
 
-    KeystoreAccessFailed(SecurityError),
+    // API
+    Endpoint(Box<ResponseMetadata>),
 
-    ArgumentError(String),
-    InternalError(String),
+    // Metadata
+    Session(ClientError),
+    Credentials(ClientError),
+}
+
+impl From<ClientError> for CommandError {
+    fn from(err: ClientError) -> Self {
+        match err {
+            ClientError::BadRequest(r) |
+            ClientError::Forbidden(r) |
+            ClientError::NotFound(r) |
+            ClientError::Conflict(r) |
+            ClientError::InternalServerError(r) => { CommandError::Endpoint(r) }
+            other => CommandError::Internal(format!("{other:?}")),
+        }
+    }
 }
